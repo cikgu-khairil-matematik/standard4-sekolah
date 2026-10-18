@@ -4,7 +4,7 @@ on:
     branches: [main]
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 concurrency:
@@ -18,21 +18,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Import verified application source once
-        if: ${{ hashFiles('package.json') == '' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail --location --retry 2 --user-agent 'Standard4Migration/1.0' 'https://standard-4-sktd-2026.krel-adam.chatgpt.site/standard4-source-28b23f705a86.zip' --output /tmp/standard4-source.zip
-          echo '28b23f705a86fc2ed567dbca140c2f6d4d0057a5c7c264255edfc91536f02bde  /tmp/standard4-source.zip' | sha256sum --check
-          mkdir /tmp/standard4-source
-          unzip -q /tmp/standard4-source.zip -d /tmp/standard4-source
-          cp -a /tmp/standard4-source/. .
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app docs migration public scripts package.json package-lock.json tsconfig.json README.md .gitignore
-          git commit -m 'Import Standard 4 application source and offline assets'
-          git push origin HEAD:main
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
