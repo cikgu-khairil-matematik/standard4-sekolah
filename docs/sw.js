@@ -1,0 +1,9 @@
+const CACHE='standard4-pages-v1',base=new URL('./',self.location.href),root=base.pathname;
+const asset=u=>u.origin===base.origin&&(u.pathname.startsWith(root+'assets/')||u.pathname.startsWith(root+'icons/')||['manifest.webmanifest','offline-assets.json','favicon.svg'].includes(u.pathname.slice(root.length)));
+self.addEventListener('install',()=>self.skipWaiting());
+self.addEventListener('activate',e=>e.waitUntil((async()=>{for(const k of await caches.keys())if(k.startsWith('standard4-pages-')&&k!==CACHE)await caches.delete(k);await self.clients.claim();})()));
+self.addEventListener('fetch',e=>{const req=e.request,u=new URL(req.url);if(req.method!=='GET'||u.origin!==base.origin||!u.pathname.startsWith(root))return;
+ if(req.mode==='navigate')e.respondWith((async()=>{try{const r=await fetch(req);if(r.ok&&!r.redirected&&u.pathname===root&&!u.search)(await caches.open(CACHE)).put(root,r.clone());return r;}catch{return await caches.match(root)||new Response('Sambungkan internet dan aktifkan mod offline dahulu.',{status:503});}})());
+ else if(asset(u))e.respondWith((async()=>{const stored=await caches.match(req);if(stored)return stored;const r=await fetch(req);if(r.ok&&!r.redirected)(await caches.open(CACHE)).put(req,r.clone());return r;})());
+});
+self.addEventListener('message',e=>{if(e.data?.type!=='PREPARE_OFFLINE')return;e.waitUntil((async()=>{try{const r=await fetch(new URL('offline-assets.json',base),{cache:'reload'});if(!r.ok)throw Error();const list=await r.json();if(!Array.isArray(list)||!list.length)throw Error();const urls=[base.href,new URL('manifest.webmanifest',base).href,...list.map(s=>new URL(s,base).href)];const cache=await caches.open(CACHE);for(const s of [...new Set(urls)]){const u=new URL(s);if(s!==base.href&&!asset(u))throw Error();const r=await fetch(s,{cache:'reload'});if(!r.ok||r.redirected)throw Error();await cache.put(s,r);}e.ports[0]?.postMessage({ok:true});}catch{e.ports[0]?.postMessage({ok:false});}})());});

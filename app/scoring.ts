@@ -1,0 +1,31 @@
+import source from './rubric.json';
+export type TeacherType = 'perdana'|'khas';
+export type Stage = 'kendiri'|'pertama'|'kedua';
+export type Teacher = {id:string;name:string;type:TeacherType;pp1:string;pp2:string;position:string;grade:string;session:string;sourceNumber:number};
+export type RosterInput={name:string;type:TeacherType;pp1?:string;pp2?:string;position?:string;grade?:string;session?:string;sourceNumber?:number};
+export type Assessment = {id:string;teacherId:string;year:number;stage:Stage;status:'draft'|'submitted';scores:(number|null)[];evaluator:string;date:string;subject:string;classroom:string;notes:string;total:string|null;revision:number;updatedAt:string;mutationId?:string;localPending?:boolean};
+export const stages:Stage[]=['kendiri','pertama','kedua'];
+export const stageNames:Record<Stage,string>={kendiri:'Penilaian kendiri',pertama:'Penilaian pertama',kedua:'Penilaian kedua'};
+export function assignedEvaluator(teacher:Pick<Teacher,'name'|'pp1'|'pp2'>,stage:Stage){return stage==='kendiri'?teacher.name:stage==='pertama'?(teacher.pp1||''):(teacher.pp2||'');}
+export const rubric=source;
+export const round=(n:number)=>Math.round((n+Number.EPSILON)*100)/100;
+export function calculate(scores:(number|null)[],type:TeacherType){
+ let index=0;
+ const aspects=rubric[type].groups.map(g=>{const values=scores.slice(index,index+g.items.length);index+=g.items.length;const complete=values.length===g.items.length&&values.every(x=>typeof x==='number'&&Number.isInteger(x)&&x>=0&&x<=4);const sum=values.reduce<number>((a,b)=>a+(typeof b==='number'?b:0),0);return {code:g.code,weight:g.weight,complete,score:complete?round(sum/(g.items.length*4)*g.weight):null,percentage:complete?(g.code==='4.4.2'?Math.floor((sum/(g.items.length*4)*100+1e-9)*100)/100:round(sum/(g.items.length*4)*100)):null};});
+ return {aspects,total:aspects.every(a=>a.complete)?round(aspects.reduce((s,a)=>s+(a.score??0),0)):null,filled:scores.filter(x=>x!==null&&x!==undefined).length};
+}
+export function grade(n:number){return n>=85?'Cemerlang':n>=70?'Baik':n>=55?'Sederhana':'Perlu tindakan segera';}
+export function normalized(name:string){return name.trim().replace(/\s+/g,' ').normalize('NFKC').toLocaleUpperCase('ms-MY');}
+export function filterTeachers(teachers:Teacher[],filters:{query:string;category:string;completion:string;session:string;pp1:string;pp2:string;issue:string},done:(id:string)=>number){
+ const f=filters;
+ return teachers.filter(t=>(f.category==='all'||t.type===f.category)&&normalized(t.name).includes(normalized(f.query))&&(f.completion==='all'||(f.completion==='complete'?done(t.id)===3:f.completion==='partial'?done(t.id)>0&&done(t.id)<3:done(t.id)===0))&&(f.session==='all'||t.session===f.session)&&(f.pp1==='all'||(f.pp1==='missing'?!t.pp1:t.pp1===f.pp1))&&(f.pp2==='all'||(f.pp2==='missing'?!t.pp2:t.pp2===f.pp2))&&(f.issue==='all'||(f.issue==='pp1'?!t.pp1:f.issue==='pp2'?!t.pp2:!t.pp1||!t.pp2))).sort((a,b)=>(a.sourceNumber||99999)-(b.sourceNumber||99999)||a.name.localeCompare(b.name));
+}
+export function parseRoster(text:string):RosterInput[]{
+ const delimiter=text.includes('\t')?'\t':','; const rows:string[][]=[];let row:string[]=[],cell='',quoted=false;
+ for(let i=0;i<text.length;i++){const c=text[i];if(c==='"'){if(quoted&&text[i+1]==='"'){cell+='"';i++;}else quoted=!quoted;}else if(c===delimiter&&!quoted){row.push(cell);cell='';}else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&text[i+1]==='\n')i++;row.push(cell);if(row.some(s=>s.trim()))rows.push(row);row=[];cell='';}else cell+=c;}
+ row.push(cell);if(row.some(s=>s.trim()))rows.push(row);
+ if(!rows.length)return [];
+ const headers=rows[0].map(x=>normalized(x).replace(/^\uFEFF/,''));const col=headers.findIndex(x=>['NAMA','NAMA PYD','NAMA GURU','NAMA PENUH','NAME'].includes(x));const typeCol=headers.findIndex(x=>['JENIS','KATEGORI','TYPE','ALIRAN'].includes(x));
+ const fields={pp1:headers.findIndex(h=>/^PP1\b/.test(h)),pp2:headers.findIndex(h=>/^PP2\b/.test(h)),position:headers.indexOf('JAWATAN'),grade:headers.indexOf('GRED'),session:headers.findIndex(h=>['SESI','SESI SEKOLAH'].includes(h))};
+ return (col>=0?rows.slice(1):rows).map(r=>{const name=(r[col>=0?col:0]??'').trim();const kind=r[typeCol>=0?typeCol:1]??'';const entry:RosterInput={name:name.replace(/\s+/g,' '),type:/khas|ppki/i.test(kind)?'khas':'perdana'};if(col>=0)for(const [field,index] of Object.entries(fields))if(index>=0)(entry as unknown as Record<string,unknown>)[field]=(r[index]??'').trim();return entry;}).filter(t=>t.name.length>=3&&t.name.length<=180&&!/^\d+$/.test(t.name));
+}

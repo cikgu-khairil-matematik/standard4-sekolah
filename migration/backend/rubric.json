@@ -1,0 +1,884 @@
+{
+  "perdana": {
+    "source": "07-Tapak_Standard_4_PdP_Updated_28.10.2024 (1).xlsm",
+    "groups": [
+      {
+        "code": "4.1.1",
+        "title": "Perancang",
+        "weight": 10,
+        "items": [
+          {
+            "label": "a) Menyediakan RPH yang mengandungi objektif yang boleh diukur dan aktiviti pembelajaran yang sesuai",
+            "rubric": {
+              "4": "i.   mengikut pelbagai aras keupayaan murid\nii.  mengikut peruntukan masa yang ditetapkan\niii. dengan mematuhi arahan yang berkuat kuasa/ketetapan kurikulum",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana- mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Menentukan kaedah pentaksiran",
+            "rubric": {
+              "4": "i.   mengikut pelbagai aras keupayaan murid\nii.  mengikut peruntukan masa yang ditetapkan\niii. dengan mematuhi arahan yang berkuat kuasa/ketetapan kurikulum",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana- mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Menyediakan ABM/BBM/BBB/TMK",
+            "rubric": {
+              "4": "i.   mengikut pelbagai aras keupayaan murid\nii.  mengikut peruntukan masa yang ditetapkan\niii. dengan mematuhi arahan yang berkuat kuasa/ketetapan kurikulum",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana- mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          }
+        ]
+      },
+      {
+        "code": "4.2.1",
+        "title": "Pengawal proses",
+        "weight": 10,
+        "items": [
+          {
+            "label": "a) Mengelola isi pelajaran/skop pembelajaran yang dirancang",
+            "rubric": {
+              "4": "i.   dengan menepati objektif pelajaran\nii.  mengikut pelbagai aras keupayaan murid/pembelajaran terbeza\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Mengelola masa PdPc selaras dengan aktiviti pembelajaran",
+            "rubric": {
+              "4": "i.   dengan menepati objektif pelajaran\nii.  mengikut pelbagai aras keupayaan murid/pembelajaran terbeza\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Memberi peluang kepada penyertaan aktif murid",
+            "rubric": {
+              "4": "i.   dengan menepati objektif pelajaran\nii.  mengikut pelbagai aras keupayaan murid/pembelajaran terbeza\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          }
+        ]
+      },
+      {
+        "code": "4.2.2",
+        "title": "Pengawal suasana",
+        "weight": 5,
+        "items": [
+          {
+            "label": "a) Mengawasi komunikasi murid dalam PdPc",
+            "rubric": {
+              "4": "i.   secara berhemah/mengikut kesesuaian\nii.  secara menyeluruh meliputi semua murid\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Mengawasi perlakuan murid dalam PdPc",
+            "rubric": {
+              "4": "i.   secara berhemah/mengikut kesesuaian\nii.  secara menyeluruh meliputi semua murid\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Menyusun atur kedudukan murid",
+            "rubric": {
+              "4": "i.   mengikut kesesuaian\nii.  secara menyeluruh meliputi semua murid\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "d) Melaksanakan aktiviti pembelajaran yang menyeronokkan",
+            "rubric": {
+              "4": "i.   mengikut kesesuaian\nii.  secara menyeluruh meliputi semua murid\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          }
+        ]
+      },
+      {
+        "code": "4.3.1",
+        "title": "Pembimbing",
+        "weight": 15,
+        "items": [
+          {
+            "label": "a) Memberi tunjuk ajar/tunjuk cara/panduan menguasai isi pelajaran/konsep/fakta berkaitan pelajaran",
+            "rubric": {
+              "4": "i.   mengikut keperluan/pelbagai aras keupayaan murid\nii.  dengan betul dan tepat\niii. secara berhemah\niv. bersungguh-sungguh",
+              "3": "dengan mengambil kira mana-mana tiga (3) perkara",
+              "2": "dengan mengambil kira mana-mana dua (2) perkara",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Memberi tunjuk ajar/tunjuk cara/panduan menguasai kemahiran dalam aktiviti pembelajaran",
+            "rubric": {
+              "4": "i.   mengikut keperluan/pelbagai aras keupayaan murid\nii.  dengan betul dan tepat\niii. secara berhemah\niv. bersungguh-sungguh",
+              "3": "dengan mengambil kira mana-mana tiga (3) perkara",
+              "2": "dengan mengambil kira mana-mana dua (2) perkara",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Memandu murid membuat keputusan dan menyelesaikan masalah dalam aktiviti pembelajaran",
+            "rubric": {
+              "4": "i.   mengikut keperluan/pelbagai aras keupayaan murid\nii.  dengan betul dan tepat\niii. secara berhemah\niv. bersungguh-sungguh",
+              "3": "dengan mengambil kira mana-mana tiga (3) perkara",
+              "2": "dengan mengambil kira mana-mana dua (2) perkara",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "d) Memandu murid menggunakan/memanfaatkan sumber Pendidikan berkaitan pelajaran",
+            "rubric": {
+              "4": "i.   mengikut keperluan/pelbagai aras keupayaan murid\nii.  dengan betul dan tepat\niii. secara berhemah\niv. bersungguh-sungguh",
+              "3": "dengan mengambil kira mana-mana tiga (3) perkara",
+              "2": "dengan mengambil kira mana-mana dua (2) perkara",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "e) Menggabung/merentas/ mengaitkan isi pelajaran dengan tajuk/unit/tema/nilai/kemahiran/ mata pelajaran lain dalam aktiviti pembelajaran",
+            "rubric": {
+              "4": "i.   mengikut keperluan/pelbagai aras keupayaan murid\nii.  dengan betul dan tepat\niii. secara berhemah\niv. bersungguh-sungguh",
+              "3": "dengan mengambil kira mana-mana tiga (3) perkara",
+              "2": "dengan mengambil kira mana-mana dua (2) perkara",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          }
+        ]
+      },
+      {
+        "code": "4.4.1",
+        "title": "Pendorong minda",
+        "weight": 25,
+        "items": [
+          {
+            "label": "a) Merangsang murid berkomunikasi",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut pelbagai aras keupayaan murid\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Merangsang murid berkolaboratif dalam aktiviti pembelajaran",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut pelbagai aras keupayaan murid\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Mengemukakan soalan yang menjurus ke arah pemikiran kritis dan kreatif",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut pelbagai aras keupayaan murid\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "d) Mengajukan soalan/mewujudkan situasi yang menjurus ke arah membuat keputusan dan menyelesaikan masalah",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut pelbagai aras keupayaan murid\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "e) Mewujudkan peluang untuk murid memimpin",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut pelbagai aras keupayaan murid\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "f) Menggalakkan murid mengemukakan soalan berkaitan isi pelajaran",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut pelbagai aras keupayaan murid\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "g) Menggalakkan murid memperoleh pengetahuan dan kemahiran secara kendiri",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut pelbagai aras keupayaan murid\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          }
+        ]
+      },
+      {
+        "code": "4.4.2",
+        "title": "Pendorong emosi",
+        "weight": 5,
+        "items": [
+          {
+            "label": "a) Memberi pujian/galakan terhadap perlakuan positif",
+            "rubric": {
+              "4": "i.   secara berhemah\nii.  secara menyeluruh meliputi semua murid\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Memberi penghargaan terhadap hasil kerja/idea yang bernas",
+            "rubric": {
+              "4": "i.   secara berhemah\nii.  secara menyeluruh meliputi semua murid\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Memberi keyakinan dalam mengemukakan soalan/memberi respons",
+            "rubric": {
+              "4": "i.   secara berhemah\nii.  secara menyeluruh meliputi semua murid\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "d) Prihatin terhadap keperluan murid",
+            "rubric": {
+              "4": "i.   secara berhemah\nii.  secara menyeluruh meliputi semua murid\niii. dari semasa ke semasa",
+              "3": "dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          }
+        ]
+      },
+      {
+        "code": "4.5.1",
+        "title": "Penilai",
+        "weight": 10,
+        "items": [
+          {
+            "label": "a) Menggunakan pelbagai kaedah pentaksiran dalam PdPc",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut arahan pelaksanaan pentaksiran yang berkuat kuasa/ketetapan kurikulum\niii. secara menyeluruh kepada semua murid\niv. dari semasa ke semasa",
+              "3": "dengan mengambil kira mana-mana tiga (3) perkara",
+              "2": "dengan mengambil kira mana-mana dua (2) perkara",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Menjalankan aktiviti pemulihan/pengayaan dalam PdPc",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut ketetapan kurikulum\niii. secara menyeluruh kepada semua murid\niv. dari semasa ke semasa",
+              "3": "dengan mengambil kira mana-mana tiga (3) perkara",
+              "2": "dengan mengambil kira mana-mana dua (2) perkara",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Memberi latihan/tugasan berkaitan pelajaran",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut ketetapan kurikulum\niii. secara menyeluruh daripada segi kecukupan dan kecakupan\niv. dari semasa ke semasa",
+              "3": "dengan mengambil kira mana-mana tiga (3) perkara",
+              "2": "dengan mengambil kira mana-mana dua (2) perkara",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "d) Membuat refleksi PdPc",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut arahan pelaksanaan pentaksiran yang berkuat kuasa/ketetapan kurikulum\niii. secara menyeluruh kepada semua murid\niv. dari semasa ke semasa",
+              "3": "dengan mengambil kira mana-mana tiga (3) perkara",
+              "2": "dengan mengambil kira mana-mana dua (2) perkara",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "e) Menyemak/menilai hasil kerja/gerak kerja/latihan/tugasan",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut ketetapan kurikulum\niii. secara menyeluruh kepada semua murid\niv. dari semasa ke semasa",
+              "3": "dengan mengambil kira mana-mana tiga (3) perkara",
+              "2": "dengan mengambil kira mana-mana dua (2) perkara",
+              "1": "dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          }
+        ]
+      },
+      {
+        "code": "4.6.1",
+        "title": "Pembelajar aktif",
+        "weight": 20,
+        "items": [
+          {
+            "label": "a) Memberi respons berkaitan isi pelajaran",
+            "rubric": {
+              "4": "i.   dengan pelibatan 90% hingga 100% murid\nii.  selaras dengan objektif pelajaran\niii. dengan yakin\niv. secara berhemah/bersungguh-sungguh",
+              "3": "i.  dengan pelibatan 80% hingga 89% murid\nii. dengan memenuhi sekurang- kurangnya dua (2) daripada perkara (ii), (iii) dan (iv)",
+              "2": "i.  dengan pelibatan 50% hingga 79% murid\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "1": "i.  dengan pelibatan 1% hingga 49% murid\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "0": "tidak memenuhi mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Berkomunikasi dalam melaksanakan aktiviti pembelajaran",
+            "rubric": {
+              "4": "i.   dengan pelibatan 90% hingga 100% murid\nii.  selaras dengan objektif pelajaran\niii. dengan yakin\niv. secara berhemah/bersungguh-sungguh",
+              "3": "i.  dengan pelibatan 80% hingga 89% murid\nii. dengan memenuhi sekurang- kurangnya dua (2) daripada perkara (ii), (iii) dan (iv)",
+              "2": "i.  dengan pelibatan 50% hingga 79% murid\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "1": "i.  dengan pelibatan 1% hingga 49% murid\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "0": "tidak memenuhi mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Melaksanakan aktiviti pembelajaran secara kolaboratif",
+            "rubric": {
+              "4": "i.   dengan pelibatan 90% hingga 100% murid\nii.  selaras dengan objektif pelajaran\niii. dengan yakin\niv. secara berhemah/bersungguh-sungguh",
+              "3": "i.  dengan pelibatan 80% hingga 89% murid\nii. dengan memenuhi sekurang- kurangnya dua (2) daripada perkara (ii), (iii) dan (iv)",
+              "2": "i.  dengan pelibatan 50% hingga 79% murid\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "1": "i.  dengan pelibatan 1% hingga 49% murid\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "0": "tidak memenuhi mana-mana perkara"
+            }
+          },
+          {
+            "label": "d) Memberi respons yang menjurus ke arah pemikiran kritis dan kreatif berkaitan isi pelajaran",
+            "rubric": {
+              "4": "i.   dengan pelibatan 50% hingga 100% murid\nii.  selaras dengan objektif pelajaran\niii. dengan yakin\niv. secara berhemah/ bersungguh- sungguh",
+              "3": "i.  dengan pelibatan 25% hingga 49% murid\nii. dengan memenuhi sekurang- kurangnya dua (2) daripada perkara (ii), (iii) dan (iv)",
+              "2": "i.  dengan pelibatan 10% hingga 24% murid\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "1": "i.  dengan pelibatan kurang daripada 10% murid\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "0": "tidak memenuhi mana-mana perkara"
+            }
+          },
+          {
+            "label": "e) Mengemukakan soalan berkaitan isi pelajaran",
+            "rubric": {
+              "4": "i.   dengan pelibatan 50% hingga 100% murid\nii.  selaras dengan objektif pelajaran\niii. dengan yakin\niv. secara berhemah/ bersungguh- sungguh",
+              "3": "i.  dengan pelibatan 25% hingga 49% murid\nii. dengan memenuhi sekurang- kurangnya dua (2) daripada perkara (ii), (iii) dan (iv)",
+              "2": "i.  dengan pelibatan 10% hingga 24% murid\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "1": "i.  dengan pelibatan kurang daripada 10% murid\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "0": "tidak memenuhi mana-mana perkara"
+            }
+          },
+          {
+            "label": "f) Mengaitkan isi pelajaran dengan kehidupan murid/isu lokal/global",
+            "rubric": {
+              "4": "i.   dengan pelibatan 50% hingga 100% murid\nii.  selaras dengan objektif pelajaran\niii. dengan yakin\niv. secara berhemah/ bersungguh- sungguh",
+              "3": "i.  dengan pelibatan 25% hingga 49% murid\nii. dengan memenuhi sekurang- kurangnya dua (2) daripada perkara (ii), (iii) dan (iv)",
+              "2": "i.  dengan pelibatan 10% hingga 24% murid\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "1": "i.  dengan pelibatan kurang daripada 10% murid\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "0": "tidak memenuhi mana-mana perkara"
+            }
+          },
+          {
+            "label": "g) Membuat keputusan menyelesaikan masalah berkaitan aktiviti pembelajaran",
+            "rubric": {
+              "4": "i.   dengan pelibatan 50% hingga 100% murid\nii.  selaras dengan objektif pelajaran\niii. dengan yakin\niv. secara berhemah/ bersungguh- sungguh",
+              "3": "i.  dengan pelibatan 25% hingga 49% murid\nii. dengan memenuhi sekurang- kurangnya dua (2) daripada perkara (ii), (iii) dan (iv)",
+              "2": "i.  dengan pelibatan 10% hingga 24% murid\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "1": "i.  dengan pelibatan kurang daripada 10% murid\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "0": "tidak memenuhi mana-mana perkara"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "khas": {
+    "source": "08-Tapak_Standard_4_PdP_Pendidikan_Khas_dan_Glosari_PdPc_Pendidikan_Khas (1).xlsm",
+    "groups": [
+      {
+        "code": "4.1.1",
+        "title": "Perancang",
+        "weight": 10,
+        "items": [
+          {
+            "label": "a) Menyediakan RPH yang mengandungi objektif yang boleh diukur dan aktiviti pembelajaran yang sesuai",
+            "rubric": {
+              "4": "i.   mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK\nii.  mengikut peruntukan masa yang ditetapkan\niii. dengan mematuhi arahan yang berkuat kuasa/ketetapan kurikulum Pendidikan Khas",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana- mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Menentukan kaedah pentaksiran",
+            "rubric": {
+              "4": "i.   mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK\nii.  mengikut peruntukan masa yang ditetapkan\niii. dengan mematuhi arahan yang berkuat kuasa/ketetapan kurikulum Pendidikan Khas",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana- mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Menyediakan ABM/BBM/BBB/TMK/Alat Sokongan",
+            "rubric": {
+              "4": "i.   mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK\nii.  mengikut peruntukan masa yang ditetapkan\niii. dengan mematuhi arahan yang berkuat kuasa/ketetapan kurikulum Pendidikan Khas",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana- mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          }
+        ]
+      },
+      {
+        "code": "4.2.1",
+        "title": "Pengawal proses",
+        "weight": 10,
+        "items": [
+          {
+            "label": "a) Mengelola isi pelajaran/skop pembelajaran yang dirancang",
+            "rubric": {
+              "4": "i.   dengan menepati objektif pelajaran\nii.  mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK/pembelajaran terbeza\niii. secara berterusan/konsisten",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Mengelola masa PdPc selaras dengan aktiviti pembelajaran",
+            "rubric": {
+              "4": "i.   dengan menepati objektif pelajaran\nii.  mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK/pembelajaran terbeza\niii. secara berterusan/konsisten",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Memberi peluang kepada penyertaan aktif MBPK",
+            "rubric": {
+              "4": "i.   dengan menepati objektif pelajaran\nii.  mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK/pembelajaran terbeza\niii. secara berterusan/konsisten",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          }
+        ]
+      },
+      {
+        "code": "4.2.2",
+        "title": "Pengawal suasana",
+        "weight": 5,
+        "items": [
+          {
+            "label": "a) Mengawasi komunikasi MBPK dalam PdPc",
+            "rubric": {
+              "4": "i.   secara berhemah/mengikut kesesuaian\nii.  secara menyeluruh meliputi semua MBPK\niii. secara berterusan/konsisten",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Mengawasi perlakuan MBPK dalam PdPc",
+            "rubric": {
+              "4": "i.   secara berhemah/mengikut kesesuaian\nii.  secara menyeluruh meliputi semua MBPK\niii. secara berterusan/konsisten",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Menyusun atur kedudukan MBPK",
+            "rubric": {
+              "4": "i.   secara berhemah/mengikut kesesuaian\nii.  secara menyeluruh meliputi semua MBPK\niii. secara berterusan/konsisten",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "d) Melaksanakan aktiviti pembelajaran yang menyeronokkan",
+            "rubric": {
+              "4": "i.   secara berhemah/mengikut kesesuaian\nii.  secara menyeluruh meliputi semua MBPK\niii. secara berterusan/konsisten",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          }
+        ]
+      },
+      {
+        "code": "4.3.1",
+        "title": "Pembimbing",
+        "weight": 15,
+        "items": [
+          {
+            "label": "a) Memberi tunjuk ajar/tunjuk cara/panduan menguasai isi pelajaran/konsep/fakta berkaitan pelajaran",
+            "rubric": {
+              "4": "i.   dengan betul dan tepat\nii.  mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK\niii. secara berhemah\niv. bersungguh-sungguh",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana dua (2) perkara",
+              "2": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana satu (1) perkara",
+              "1": "dilaksanakan dengan mengambil kira perkara (i)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Memberi tunjuk ajar/tunjuk cara/panduan menguasai kemahiran dalam aktiviti pembelajaran",
+            "rubric": {
+              "4": "i.   dengan betul dan tepat\nii.  mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK\niii. secara berhemah\niv. bersungguh-sungguh",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana dua (2) perkara",
+              "2": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana satu (1) perkara",
+              "1": "dilaksanakan dengan mengambil kira perkara (i)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Membuat keputusan dan menyelesaikan masalah dalam aktiviti pembelajaran",
+            "rubric": {
+              "4": "i.   dengan betul dan tepat\nii.  mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK\niii. secara berhemah\niv. bersungguh-sungguh",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana dua (2) perkara",
+              "2": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana satu (1) perkara",
+              "1": "dilaksanakan dengan mengambil kira perkara (i)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "d) Menggunakan/memanfaatkan sumber pendidikan berkaitan pelajaran",
+            "rubric": {
+              "4": "i.   dengan betul dan tepat\nii.  mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK\niii. secara berhemah\niv. bersungguh-sungguh",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana dua (2) perkara",
+              "2": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana satu (1) perkara",
+              "1": "dilaksanakan dengan mengambil kira perkara (i)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "e) Menggabung/merentas/ mengaitkan isi pelajaran dengan tajuk/unit/tema/nilai/kemahiran/ mata pelajaran lain dalam aktiviti pembelajaran",
+            "rubric": {
+              "4": "i.   dengan betul dan tepat\nii.  mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK\niii. secara berhemah\niv. bersungguh-sungguh",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana dua (2) perkara",
+              "2": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana satu (1) perkara",
+              "1": "dilaksanakan dengan mengambil kira perkara (i)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          }
+        ]
+      },
+      {
+        "code": "4.4.1",
+        "title": "Pendorong minda",
+        "weight": 25,
+        "items": [
+          {
+            "label": "a) Merangsang MBPK berkomunikasi/bertindak balas dengan memberi reaksi (visual/auditori/kinestetik/ sensorimotor) dalam melaksanakan aktiviti pembelajaran",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK \niii. dari semasa ke semasa melibatkan interaksi murid-guru/murid-murid/ murid-bahan",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Merangsang MBPK berkolaboratif dalam aktiviti pembelajaran mengikut keupayaan dan kesediaan MBPK (guru/rakan/sumber/bahan pendidikan)",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK \niii. dari semasa ke semasa melibatkan interaksi murid-guru/murid-murid/ murid-bahan",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Mengemukakan soalan kepada MBPK untuk berfikir secara logik/mengemukakan idea yang kreatif/kritis mengikut kemampuan/keupayaan",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK \niii. dari semasa ke semasa melibatkan interaksi murid-guru/murid-murid/ murid-bahan",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "d) Mengajukan soalan/mewujudkan situasi yang menjurus ke arah membuat keputusan/menyelesaikan masalah",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK \niii. dari semasa ke semasa melibatkan interaksi murid-guru/murid-murid/ murid-bahan",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "e) Mewujudkan peluang untuk MBPK memimpin",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK \niii. dari semasa ke semasa melibatkan interaksi murid-guru/murid-murid/ murid-bahan",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "f) Menggalakkan/merangsang MBPK mengemukakan soalan mudah berkaitan isi pelajaran mengikut tahap keupayaan MBPK (secara lisan/ menggunakan gambar/tulisan ringkas/bahasa isyarat/alat bantuan komunikasi)",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK \niii. dari semasa ke semasa melibatkan interaksi murid-guru/murid-murid/ murid-bahan",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "g) Menggalakkan MBPK memperoleh pengetahuan dan kemahiran secara kendiri",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran\nii.  mengikut pelbagai tahap kebolehan/ketidakupayaan MBPK \niii. dari semasa ke semasa melibatkan interaksi murid-guru/murid-murid/ murid-bahan",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          }
+        ]
+      },
+      {
+        "code": "4.4.2",
+        "title": "Pendorong emosi",
+        "weight": 5,
+        "items": [
+          {
+            "label": "a) Memberi pujian/galakan terhadap perlakuan positif",
+            "rubric": {
+              "4": "i.   secara berhemah\nii.  secara menyeluruh meliputi semua MBPK\niii. secara berterusan/konsisten dari semasa ke semasa",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Memberi penghargaan terhadap hasil kerja/idea yang bermakna",
+            "rubric": {
+              "4": "i.   secara berhemah\nii.  secara menyeluruh meliputi semua MBPK\niii. secara berterusan/konsisten dari semasa ke semasa",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Memberi keyakinan dalam mengemukakan soalan/memberi respons",
+            "rubric": {
+              "4": "i.   secara berhemah\nii.  secara menyeluruh meliputi semua MBPK\niii. secara berterusan/konsisten dari semasa ke semasa",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "d) Prihatin terhadap keperluan semasa MBPK",
+            "rubric": {
+              "4": "i.   secara berhemah\nii.  secara menyeluruh meliputi semua MBPK\niii. secara berterusan/konsisten dari semasa ke semasa",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan (ii) atau perkara (i) dan (iii)",
+              "2": "dilaksanakan dengan mengambil kira perkara (ii) dan (iii)",
+              "1": "dilaksanakan dengan mengambil kira mana-mana satu (1) perkara",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          }
+        ]
+      },
+      {
+        "code": "4.5.1",
+        "title": "Penilai",
+        "weight": 10,
+        "items": [
+          {
+            "label": "a) Menggunakan pelbagai kaedah pentaksiran dalam PdPc MBPK",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran MBPK\nii.  mengikut ketetapan pelaksanaan pentaksiran yang berkuat kuasa/ketetapan kurikulum Pendidikan Khas\niii. secara menyeluruh dari segi kecukupan, kecakupan dan meliputi semua MBPK\niv. secara fleksibel/berterusan/konsisten/ segera",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana dua (2) perkara",
+              "2": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana satu (1) perkara",
+              "1": "dilaksanakan dengan mengambil kira perkara (i)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Menjalankan aktiviti pemulihan/pengayaan dalam PdPc MBPK",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran MBPK\nii.  mengikut ketetapan pelaksanaan pentaksiran yang berkuat kuasa/ketetapan kurikulum Pendidikan Khas\niii. secara menyeluruh dari segi kecukupan, kecakupan dan meliputi semua MBPK\niv. secara fleksibel/berterusan/konsisten/ segera",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana dua (2) perkara",
+              "2": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana satu (1) perkara",
+              "1": "dilaksanakan dengan mengambil kira perkara (i)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Memberi latihan/tugasan berkaitan pelajaran MBPK",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran MBPK\nii.  mengikut ketetapan pelaksanaan pentaksiran yang berkuat kuasa/ketetapan kurikulum Pendidikan Khas\niii. secara menyeluruh dari segi kecukupan, kecakupan dan meliputi semua MBPK\niv. secara fleksibel/berterusan/konsisten/ segera",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana dua (2) perkara",
+              "2": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana satu (1) perkara",
+              "1": "dilaksanakan dengan mengambil kira perkara (i)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "d) Membuat refleksi PdPc MBPK",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran MBPK\nii.  mengikut ketetapan pelaksanaan pentaksiran yang berkuat kuasa/ketetapan kurikulum Pendidikan Khas\niii. secara menyeluruh dari segi kecukupan, kecakupan dan meliputi semua MBPK\niv. secara fleksibel/berterusan/konsisten/ segera",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana dua (2) perkara",
+              "2": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana satu (1) perkara",
+              "1": "dilaksanakan dengan mengambil kira perkara (i)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "e) Menyemak/menilai hasil kerja/gerak kerja/latihan/tugasan MBPK",
+            "rubric": {
+              "4": "i.   berdasarkan objektif pelajaran MBPK\nii.  mengikut ketetapan pelaksanaan pentaksiran yang berkuat kuasa/ketetapan kurikulum Pendidikan Khas\niii. secara menyeluruh dari segi kecukupan, kecakupan dan meliputi semua MBPK\niv. secara fleksibel/berterusan/konsisten/ segera",
+              "3": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana dua (2) perkara",
+              "2": "dilaksanakan dengan mengambil kira perkara (i) dan mana-mana satu (1) perkara",
+              "1": "dilaksanakan dengan mengambil kira perkara (i)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          }
+        ]
+      },
+      {
+        "code": "4.6.1",
+        "title": "Pembelajar aktif",
+        "weight": 20,
+        "items": [
+          {
+            "label": "a) Memberi respons/kerjasama berkaitan isi pelajaran (tindak balas MBPK terhadap rangsangan/peristiwa/komunikasi dalam bentuk verbal, non-verbal, emosi, fizikal/tingkah laku)",
+            "rubric": {
+              "4": "i.   dengan pelibatan 90% hingga 100% MBPK\nii.  selaras dengan objektif pelajaran\niii. dengan yakin\niv. secara berhemah/bersungguh-sungguh",
+              "3": "i.  dengan pelibatan 80% hingga 89% MBPK\nii. dengan memenuhi sekurang- kurangnya dua (2) daripada perkara (ii), (iii) dan (iv)",
+              "2": "i.  dengan pelibatan 50% hingga 79% MBPK\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "1": "i.  dengan pelibatan 1% hingga 49% MBPK\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "b) Berkomunikasi/bertindak balas dengan reaksi visual/auditori/kinestetik/sensori motor/penggunaan bahasa isyarat dalam melaksanakan aktiviti pembelajaran",
+            "rubric": {
+              "4": "i.   dengan pelibatan 90% hingga 100% MBPK\nii.  selaras dengan objektif pelajaran\niii. dengan yakin\niv. secara berhemah/bersungguh-sungguh",
+              "3": "i.  dengan pelibatan 80% hingga 89% MBPK\nii. dengan memenuhi sekurang- kurangnya dua (2) daripada perkara (ii), (iii) dan (iv)",
+              "2": "i.  dengan pelibatan 50% hingga 79% MBPK\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "1": "i.  dengan pelibatan 1% hingga 49% MBPK\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "c) Melaksanakan aktiviti pembelajaran secara kolaboratif mengikut keupayaan dan kesediaan MBPK (guru/rakan/sumber/bahan pendidikan)",
+            "rubric": {
+              "4": "i.   dengan pelibatan 90% hingga 100% MBPK\nii.  selaras dengan objektif pelajaran\niii. dengan yakin\niv. secara berhemah/bersungguh-sungguh",
+              "3": "i.  dengan pelibatan 80% hingga 89% MBPK\nii. dengan memenuhi sekurang- kurangnya dua (2) daripada perkara (ii), (iii) dan (iv)",
+              "2": "i.  dengan pelibatan 50% hingga 79% MBPK\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "1": "i.  dengan pelibatan 1% hingga 49% MBPK\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "d) MBPK berfikir secara logik/mengemukakan idea yang kreatif/kritis mengikut kemampuan/keupayaan",
+            "rubric": {
+              "4": "i.   dengan pelibatan 50% hingga 100% MBPK\nii.  selaras dengan objektif pelajaran\niii. dengan yakin\niv. secara berhemah/ bersungguh- sungguh",
+              "3": "i.  dengan pelibatan 25% hingga 49% MBPK\nii. dengan memenuhi sekurang- kurangnya dua (2) daripada perkara (ii), (iii) dan (iv)",
+              "2": "i.  dengan pelibatan 10% hingga 24% MBPK\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "1": "i.  dengan pelibatan kurang daripada 10% MBPK\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "e) Mengemukakan soalan mudah berkaitan isi pelajaran mengikut tahap keupayaan MBPK (secara lisan/menggunakan gambar/tulisan ringkas/bahasa isyarat/alat bantuan komunikasi)",
+            "rubric": {
+              "4": "i.   dengan pelibatan 50% hingga 100% MBPK\nii.  selaras dengan objektif pelajaran\niii. dengan yakin\niv. secara berhemah/ bersungguh- sungguh",
+              "3": "i.  dengan pelibatan 25% hingga 49% MBPK\nii. dengan memenuhi sekurang- kurangnya dua (2) daripada perkara (ii), (iii) dan (iv)",
+              "2": "i.  dengan pelibatan 10% hingga 24% MBPK\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "1": "i.  dengan pelibatan kurang daripada 10% MBPK\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "f) Mengaitkan isi pelajaran dengan kehidupan harian MBPK",
+            "rubric": {
+              "4": "i.   dengan pelibatan 50% hingga 100% MBPK\nii.  selaras dengan objektif pelajaran\niii. dengan yakin\niv. secara berhemah/ bersungguh- sungguh",
+              "3": "i.  dengan pelibatan 25% hingga 49% MBPK\nii. dengan memenuhi sekurang- kurangnya dua (2) daripada perkara (ii), (iii) dan (iv)",
+              "2": "i.  dengan pelibatan 10% hingga 24% MBPK\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "1": "i.  dengan pelibatan kurang daripada 10% MBPK\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          },
+          {
+            "label": "g) Menyelesaikan masalah/tugas/latihan berkaitan aktiviti pembelajaran",
+            "rubric": {
+              "4": "i.   dengan pelibatan 50% hingga 100% MBPK\nii.  selaras dengan objektif pelajaran\niii. dengan yakin\niv. secara berhemah/ bersungguh- sungguh",
+              "3": "i.  dengan pelibatan 25% hingga 49% MBPK\nii. dengan memenuhi sekurang- kurangnya dua (2) daripada perkara (ii), (iii) dan (iv)",
+              "2": "i.  dengan pelibatan 10% hingga 24% MBPK\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "1": "i.  dengan pelibatan kurang daripada 10% MBPK\nii. dengan memenuhi sekurang- kurangnya satu (1) daripada perkara (ii), (iii) dan (iv)",
+              "0": "tidak mengambil kira mana-mana perkara"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
