@@ -1,8 +1,8 @@
-# Standard 4 Sekolah
+# SK@S — Sistem Kualiti @ Sekolah
 
 Aplikasi pengisian kendiri, penilaian pertama (PP1) dan penilaian kedua (PP2).
 
-**Aplikasi:** https://cikgu-khairil-matematik.github.io/standard4-sekolah/
+**Aplikasi:** https://skas-sekolah.github.io/standard4-sekolah/
 
 ## Log masuk
 
@@ -44,3 +44,28 @@ Token pelayar disimpan dalam sessionStorage dan tidak dimasukkan dalam sandaran 
 Pemindahan diselesaikan pada **19 Oktober 2026 (waktu Malaysia)**. Semua API data lama telah dikunci sebelum eksport akhir. Dokumen akhir dibandingkan sepenuhnya dan diimport secara atomik ke Supabase; ruang milik pengguna diaktifkan dan ruang ujian automatik kekal dinyahaktifkan. ID sekolah dan ID Supabase Auth dikekalkan tanpa menukar kata laluan. Sandaran akhir disimpan secara peribadi dan tidak berada dalam repositori ini.
 
 Ujian domain, penyulitan dan penyegerakan offline, pengasingan sekolah, peringkat PYD/PP1/PP2, revision/idempotency, penguncian rekod, aktivasi, pembatalan sesi serta API Supabase telah lulus. Aset awam, manifest, CORS dan binaan pada subfolder GitHub Pages disahkan. Halaman log masuk disemak melalui pelayar. Log masuk dengan kata laluan sebenar pengguna dan pemasangan telefon belum diuji oleh pembangun.
+
+
+## Modul Kekuatan Kami A1–A9
+
+Dashboard SK@S menggunakan akaun dan sekolah sedia ada. Buka **Tugas & pengesahan** untuk menetapkan pengisi dan penyemak aktif yang berbeza bagi setiap aspek dan tahun. Pengisi/pentadbir menyimpan draf, kemudian menghantar untuk semakan. Pengesahan hanya oleh penyemak/pentadbir yang bukan pengisi atau penyunting terakhir. Borang yang dihantar/disahkan dikunci. Pulangkan atau buka semula dengan sebab untuk membolehkan pembetulan; pengesahan terdahulu dibatalkan.
+
+A1 meliputi guru; A2 rumusan Standard 4 tahun sebelumnya; A3 AKP/pekerja swasta; A4–A6 prasarana akademik, kokurikulum dan HEM; A7 DELIMa tahun sebelumnya serta peranti; A8 asrama/prasarana/sumber manusia; A9 program dan sokongan PIBKS. Senarai pilihan prasarana diambil daripada tapak Excel 2026 pengguna, dengan entri pendua yang sama digabungkan. Tiada data sekolah sebenar disertakan dalam kod.
+
+A9 mengikut formula tapak: purata kehadiran mengambil peratus positif sahaja dan setiap program dihadkan 100%. Bilangan ibu bapa penyumbang dipetakan kepada 0/25/50/75/100% pada ambang 0, 1–3, 4–6, 7–9, 10+. Komuniti menggunakan ambang 0, 1, 2–3, 4–5, 6+. Nilai sifar, belum diisi dan tidak berkenaan dibezakan. Nisbah penyebut sifar tidak dianggap 0%. Tiada wajaran atau skor keseluruhan sekolah direka. Data A2 dimasukkan daripada rumusan tahun sebelumnya yang telah disahkan; aplikasi tidak memilih atau menggabungkan tiga sesi Standard 4 secara automatik.
+
+Laporan menyediakan semua status atau rekod disahkan sahaja, cetakan/simpanan PDF melalui pelayar, dan CSV yang boleh dibuka dalam Excel. CSV melindungi nilai teks daripada formula injection. Pengguna hanya menerima butiran aspek yang ditugaskan kepadanya; pentadbir sekolah mempunyai akses semua aspek. Pautan evidens menyimpan URL sahaja, bukan memuat naik dokumen.
+
+Untuk offline, buka tahun berkenaan semasa online dan aktifkan salinan peranti dahulu. Cache dan draf A1–A9 disimpan dalam vault disulitkan yang sama. Penyelarasan menyemak semula penugasan dan versi rekod; konflik dikekalkan untuk dimuat turun atau dibuang secara nyata sebelum menggunakan rekod pelayan. Tindakan hantar, sahkan dan penugasan memerlukan internet. Status draf pada peranti dinyatakan dan tidak termasuk laporan disahkan sahaja. Pemulihan sandaran turut memulihkan cache dan draf modul ini.
+
+Endpoint `/api/strength` menggunakan JWT, keahlian sekolah dan sesi yang disemak semula oleh Edge Function. Data ialah sambungan `strength[year][aspect]` dalam dokumen `s4_schools`, menggunakan CAS dan audit atomik yang sama. Tiada perubahan polisi RLS atau kebenaran terus jadual diperlukan. Deploy fungsi dengan `index.ts`, `domain.ts`, `strength-api.ts`, `strength-model.ts`, `scoring.ts`, `rubric.json` dan `deno.json`. Semua fail berada dalam `migration/backend/`. CORS turut membenarkan `https://skas-sekolah.github.io`.
+
+Semakan tempatan:
+
+```sh
+npx tsc --noEmit
+node scripts/test-strength.mjs
+node scripts/test-strength-offline.mjs
+node scripts/test-account-deletion.mjs
+npm run build
+```
