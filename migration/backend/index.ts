@@ -1,8 +1,9 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.102.0';
 import {ApiError,fail,text,code,username,password,secret,hash,now,actor,session,audit,getData,dataCommand,getSchool,schoolCommand,type SchoolDoc,type Row} from './domain.ts';
+import {strengthCommand,strengthView} from './strength-api.ts';
 const url=Deno.env.get('SUPABASE_URL')!,serviceKey=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,anon=Deno.env.get('SUPABASE_ANON_KEY')!;
 const db=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
-const allowed=new Set(['https://cikgu-khairil-matematik.github.io','https://standard-4-sktd-2026.krel-adam.chatgpt.site']);
+const allowed=new Set(['https://skas-sekolah.github.io','https://cikgu-khairil-matematik.github.io','https://standard-4-sktd-2026.krel-adam.chatgpt.site']);
 class Retry extends Error{}
 async function load(value:string,byCode=false){const {data,error}=await db.from('s4_schools').select('*').eq(byCode?'code':'id',value).maybeSingle();if(error)fail('Pangkalan data belum dapat dihubungi.',503);if(!data)return null;if(!data.enabled)fail('Ruang sekolah sedang disediakan untuk pemindahan. Gunakan pautan asal buat sementara.',423);return data as Row;}
 async function commit(row:Row){row.data.sessions=row.data.sessions.filter((s:Row)=>s.expiresAt>now());row.data.invitations=row.data.invitations.filter((i:Row)=>i.expiresAt>now());const {data,error}=await db.from('s4_schools').update({data:row.data,code:row.data.school.code,revision:row.revision+1,updated_at:now()}).eq('id',row.id).eq('revision',row.revision).eq('enabled',true).select('id');if(error)fail('Rekod tidak dapat disimpan.',503);if(!data?.length)throw new Retry();}
@@ -70,11 +71,16 @@ Deno.serve(async(req:Request)=>{
  try{
   if(!req.headers.get('content-type')?.startsWith('application/json'))fail('Gunakan JSON.',415);const raw=await req.text();if(raw.length>350000)fail('Permintaan terlalu besar.',413);let b:Row;try{b=JSON.parse(raw);}catch{fail('Maklumat tidak sah.');}
   if(!b!||typeof b!=='object'||Array.isArray(b))fail('Maklumat tidak sah.');
-  if(!['/api/session','/api/data','/api/school'].includes(b!.path)||!['GET','POST'].includes(b!.method))fail('Laluan tidak sah.',404);
+  if(!['/api/session','/api/data','/api/school','/api/strength'].includes(b!.path)||!['GET','POST'].includes(b!.method))fail('Laluan tidak sah.',404);
   const ip=req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||'shared';await limit('ip:'+await hash(ip),300,600);if(b!.body?.action==='register-school')await limit('register:'+await hash(ip),10,3600);
   for(let attempt=0;attempt<6;attempt++)try{
    if(b!.path==='/api/session')return reply(await sessionRoute(req,b!));
-   const {row,m}=await requireUser(req,b!);if(b!.method==='GET')return reply(b!.path==='/api/data'?getData(row.data,m):getSchool(row.data,m));
+   const {row,m}=await requireUser(req,b!);
+   if(b!.path==='/api/strength'){
+    if(b!.body?.action==='load')return reply(strengthView(row.data,m,b!.body.year));
+    if(b!.method!=='POST')fail('Gunakan POST.',405);await limit('write:'+m.id,300,600);const result=strengthCommand(row.data,m,b!.body||{});await commit(row);return reply(result);
+   }
+   if(b!.method==='GET')return reply(b!.path==='/api/data'?getData(row.data,m):getSchool(row.data,m));
    await limit('write:'+m.id,300,600);const result=b!.path==='/api/data'?dataCommand(row.data,m,b!.body||{}):await schoolCommand(row.data,m,b!.body||{});await commit(row);return reply(result);
   }catch(e){if(e instanceof Retry){if(attempt<5)continue;fail('Rekod sedang berubah. Cuba semula.',409);}throw e;}
   fail('Permintaan belum selesai.',503);
