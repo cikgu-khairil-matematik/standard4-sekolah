@@ -2,7 +2,8 @@ type AppSession={memberId:string;schoolId:string;schoolCode:string;schoolName:st
 import type {Teacher,Assessment} from './scoring';
 import type {RosterInfo} from './roster-ui';
 import type {StrengthBundle,PendingStrength} from '../migration/backend/strength-model';
+import type {ManagementBundle,PendingManagement} from '../migration/backend/management-model';
 export type {AppSession};
 export type AppData={teachers:Teacher[];assessments:Assessment[];rosterInfo:RosterInfo|null;session:AppSession};
 export type PendingDraft={assessment:Assessment;teacherName:string;error?:string;server?:Assessment|null};
-export type OfflineSnapshot={data:AppData;pending:PendingDraft[];savedAt:string;offlineUntil:string;strengthCache?:Record<string,StrengthBundle>;strengthPending?:PendingStrength[]};
+export type OfflineSnapshot={data:AppData;pending:PendingDraft[];savedAt:string;offlineUntil:string;managementCache?:Record<string,ManagementBundle>;managementPending?:PendingManagement[];strengthCache?:Record<string,StrengthBundle>;strengthPending?:PendingStrength[]};
