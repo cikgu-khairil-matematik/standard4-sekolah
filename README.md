@@ -1,4 +1,4 @@
-# SK@S — Sistem Kualiti @ Sekolah
+# SK@S — SKPM Kualiti@Sekolah
 
 Aplikasi pengisian kendiri, penilaian pertama (PP1) dan penilaian kedua (PP2).
 
