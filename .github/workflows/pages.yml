@@ -23,6 +23,10 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts
+      - run: npx tsc --noEmit
+      - run: node scripts/test-strength.mjs
+      - run: node scripts/test-strength-offline.mjs
+      - run: node scripts/test-account-deletion.mjs
       - run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
