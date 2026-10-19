@@ -69,3 +69,15 @@ node scripts/test-strength-offline.mjs
 node scripts/test-account-deletion.mjs
 npm run build
 ```
+
+## Pengurusan Kami — Standard 1, 2 dan 3
+
+Modul Pengurusan Kami menyediakan 42 standard kualiti dan 178 tindakan daripada Instrumen SKPM Kualiti@Sekolah Edisi 2026 yang dibekalkan pengguna (halaman bercetak 11–61). Label tindakan diringkaskan; pautan instrumen dan nombor halaman disediakan supaya pengisi merujuk syarat penskoran sebenar bagi setiap tindakan. Setiap skor ialah nombor bulat 0–4. Kosong berbeza daripada sifar. Jumlah mentah hanya dipaparkan setelah semua tindakan dalam borang lengkap; tiada wajaran atau skor keseluruhan rasmi SKPM diandaikan. Standard 4 arus perdana / pendidikan khas kekal dalam modul PdPc sedia ada.
+
+Buka **Pengurusan Kami → Tugas & pengesahan**, pilih Standard dan tetapkan pengisi serta penyemak aktif yang berbeza bagi setiap standard kualiti. Pengisi/pentadbir menyimpan draf dan menghantar borang lengkap dengan catatan/rujukan atau pautan evidens. Penyemak/pentadbir yang bukan pengisi atau penyunting terakhir boleh mengesahkan. Borang dihantar/disahkan dikunci; pemulangan/pembukaan semula memerlukan sebab dan membatalkan pengesahan terdahulu. Penugasan, penghantaran dan pengesahan memerlukan internet. Pengguna lain hanya melihat status dan penugasan, bukan skor/catatan/evidens.
+
+Buka tahun berkenaan semasa online dan aktifkan mod offline dahulu. Cache dan draf Pengurusan Kami disimpan dalam vault terenkripsi yang sama dan dipulihkan melalui sandaran sedia ada. Penyelarasan menyemak semula akses dan revision. Konflik dikekalkan untuk dimuat turun atau dibuang secara nyata sebelum mengambil rekod pelayan. Laporan mengikut Standard, semua status/disahkan sahaja, CSV untuk Excel dan cetak/PDF melalui pelayar. Pautan evidens menyimpan URL sahaja; tiada muat naik dokumen.
+
+Backend menambah laluan `/api/management` dengan JWT, sesi aplikasi dan keahlian sekolah sedia ada. Data `management[year][standard]` disimpan bersama audit melalui CAS dokumen sekolah. Tiada perubahan skema, polisi RLS, akaun, senarai guru, skor Standard 4 atau Kekuatan Kami diperlukan. Deploy fungsi dengan sembilan fail: `index.ts`, `domain.ts`, `scoring.ts`, `rubric.json`, `deno.json`, `strength-api.ts`, `strength-model.ts`, `management-api.ts`, `management-model.ts`.
+
+Ujian tambahan: `node scripts/test-management.mjs` dan `node scripts/test-management-offline.mjs`. Ujian menggunakan sekolah/akaun rekaan setempat tanpa menulis data percubaan ke pangkalan data sebenar.
