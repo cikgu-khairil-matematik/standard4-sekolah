@@ -22,7 +22,8 @@ export default function Dashboard({session,systemBar}:{session:AppSession;system
  const [resetTarget,setResetTarget]=useState<ResetTarget|null>(null);
  const [rosterInfo,setRosterInfo]=useState<RosterInfo|null>(null),[sessionFilter,setSessionFilter]=useState('all'),[pp1Filter,setPp1Filter]=useState('all'),[pp2Filter,setPp2Filter]=useState('all'),[issueFilter,setIssueFilter]=useState('all'),[listPage,setListPage]=useState(1),[pageSize,setPageSize]=useState(20);
  useEffect(()=>{setListPage(1);},[query,category,completion,sessionFilter,pp1Filter,pp2Filter,issueFilter,pageSize]);
- const load=async()=>{setLoading(true);setError('');try{const d=await api();setTeachers(d.teachers);setRecords(d.assessments);setRosterInfo(d.rosterInfo);}catch(e){setError((e as Error).message);}finally{setLoading(false);}};
+ // Keep mounted forms and generated activation codes during background refresh.
+ const load=async()=>{setError('');try{const d=await api();setTeachers(d.teachers);setRecords(d.assessments);setRosterInfo(d.rosterInfo);}catch(e){setError((e as Error).message);}finally{setLoading(false);}};
  useEffect(()=>{load();const changed=()=>load();window.addEventListener('s4-data-changed',changed);return()=>window.removeEventListener('s4-data-changed',changed);},[]);
  useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),6500);return()=>clearTimeout(t);},[toast]);
  const annual=records.filter(a=>a.year===year),getRecord=(id:string,s:Stage)=>annual.find(a=>a.teacherId===id&&a.stage===s);
