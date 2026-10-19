@@ -53,6 +53,21 @@ export function dataCommand(d:SchoolDoc,m:Row,b:Row){
  audit(d,m,v.status==='submitted'?'assessment_submitted':'assessment_draft_saved',id,previous??null,record);d.assessments=d.assessments.filter(a=>a.id!==id);d.assessments.push(record);return {assessment:record};
 }
 export async function schoolCommand(d:SchoolDoc,m:Row,b:Row){admin(m);
+ if(b.action==='delete-accounts'){
+  if(b.confirmation!=='PADAM AKAUN')fail('Taip PADAM AKAUN untuk mengesahkan pemadaman.');
+  if(!Array.isArray(b.memberIds)||!b.memberIds.length||b.memberIds.length>500||b.memberIds.some((id:unknown)=>typeof id!=='string'||!id.length||id.length>100))fail('Pilih antara 1 hingga 500 akaun.');
+  const ids=new Set<string>(b.memberIds);
+  if(ids.has(m.id))fail('Akaun yang sedang digunakan tidak boleh dipadam.',403);
+  const targets=d.members.filter(x=>ids.has(x.id));
+  if(targets.length!==ids.size)fail('Sebahagian akaun tidak ditemui. Muat semula senarai dan pilih semula.',404);
+  if(!d.members.some(x=>!ids.has(x.id)&&x.role==='admin'&&x.active===1&&x.authUserId))fail('Sekolah mesti mempunyai sekurang-kurangnya seorang pentadbir aktif.',409);
+  // Revoke the application capability in the same CAS commit as removal.
+  // An existing JWT or offline draft never recreates school membership.
+  revoke(d,[...ids]);d.invitations=d.invitations.filter(i=>!ids.has(i.memberId));
+  d.members=d.members.filter(x=>!ids.has(x.id));
+  for(const x of targets)audit(d,m,'account_deleted',x.id,{username:x.username,displayName:x.displayName,teacherId:x.teacherId,role:x.role,active:x.active},null);
+  return {ok:true,deleted:targets.length};
+ }
  if(b.action==='school-name'){const name=text(b.name,5,160),old=d.school.name;d.school.name=name;audit(d,m,'school_name_updated',d.school.id,{name:old},{name});return {ok:true};}
  if(b.action==='invite'){
   const u=username(b.username),role=b.role==='admin'?'admin':'member';const t=b.teacherId?d.teachers.find(t=>t.id===b.teacherId):null;if(b.teacherId&&!t)fail('Guru tidak ditemui.',404);if(!t&&role!=='admin')fail('Pilih guru untuk akaun.');if(d.members.some(x=>x.username===u||t&&x.teacherId===t.id))fail('ID pengguna atau guru sudah mempunyai akaun.',409);
