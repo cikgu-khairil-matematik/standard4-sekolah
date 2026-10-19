@@ -32,8 +32,8 @@ call(d,'writer',{action:'submit',revision:2});assert.equal(current(d).status,'su
 denied(d,'writer',{action:'verify',revision:3},403);denied(d,'other',{action:'verify',revision:3},403);
 denied(d,'writer',{action:'save',revision:3,data,mutationId:'bbbbbbbb-1111-2222'},409);
 denied(d,'admin',{action:'assign',revision:3,assigneeId:'other',reviewerId:'reviewer'},409);
-call(d,'reviewer',{action:'return',revision:3,feedback:'Sila semak bilangan sekali lagi.'});assert.equal(current(d).status,'returned');
-call(d,'writer',{action:'save',revision:4,data,mutationId:'bbbbbbbb-1111-2222'});call(d,'writer',{action:'submit',revision:5});call(d,'reviewer',{action:'verify',revision:6});assert.equal(current(d).status,'verified');assert.equal(current(d).verifiedBy,'reviewer');
+call(d,'reviewer',{action:'return',revision:3,feedback:'Sila semak bilangan sekali lagi.'});assert.equal(current(d).status,'returned');assert.equal(S.strengthView(d,member(d,'other'),2026).records.find(r=>r.aspect==='A4').feedback,'');
+call(d,'writer',{action:'save',revision:4,data,mutationId:'bbbbbbbb-1111-2222'});call(d,'writer',{action:'submit',revision:5});call(d,'reviewer',{action:'verify',revision:6});assert.equal(current(d).status,'verified');assert.equal(current(d).verifiedBy,'reviewer');assert.equal(current(d).verifiedName,'Penyemak');
 denied(d,'writer',{action:'save',revision:7,data,mutationId:'cccccccc-1111-2222'},409);
 denied(d,'reviewer',{action:'reopen',revision:7,feedback:''},400);
 call(d,'reviewer',{action:'reopen',revision:7,feedback:'Buka untuk kemas kini inventori.'});assert.equal(current(d).verifiedAt,null);
