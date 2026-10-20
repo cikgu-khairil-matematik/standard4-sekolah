@@ -29,6 +29,8 @@ jobs:
       - run: node scripts/test-account-deletion.mjs
       - run: node scripts/test-management.mjs
       - run: node scripts/test-management-offline.mjs
+      - run: node scripts/test-resources.mjs
+      - run: node scripts/test-drive-evidence.mjs
       - run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
