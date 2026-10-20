@@ -20,7 +20,7 @@ denied(d,'admin',{action:'assign',revision:0,assigneeId:'writer',reviewerId:'wri
 denied(d,'admin',{action:'assign',revision:0,assigneeId:'foreign-school-member',reviewerId:'reviewer'},400);
 denied(d,'admin',{action:'assign',revision:0,assigneeId:'writer',reviewerId:'inactive'},400);
 call(d,'admin',{action:'assign',revision:0,assigneeId:'writer',reviewerId:'reviewer'});
-const data=M.emptyStrengthData();data.rows=[{id:'inventory-1',name:M.CATALOG.A4[0],existing:10,working:8}];data.notes='Semakan inventori sekolah';
+const data=M.emptyStrengthData();data.rows=[{id:'inventory-1',name:M.CATALOG.A4[0],existing:10,working:8}];data.notes='Semakan inventori sekolah';data.evidence=['https://example.test/inventory'];
 denied(d,'other',{action:'save',revision:1,data,mutationId:'aaaaaaaa-1111-2222'},403);
 denied(d,'writer',{action:'save',revision:0,data,mutationId:'aaaaaaaa-1111-2222'},409);
 denied(d,'writer',{action:'save',revision:1,data:{...data,rows:[{...data.rows[0],working:11}]},mutationId:'aaaaaaaa-1111-2222'},400);
@@ -49,7 +49,7 @@ for(const [n,expected] of [[0,0],[1,25],[2,50],[3,50],[4,75],[5,75],[6,100]])ass
 assert.equal(M.ratio(null,10),null);assert.equal(M.ratio(0,10),0);assert.equal(M.ratio(0,0),null);
 const blank=M.emptyStrengthData();assert.ok(M.strengthIssues('A1',blank).length);assert.ok(M.strengthIssues('A2',{...blank,values:{previousStandard4:89}}).some(s=>s.includes('sumber')));
 assert.equal(M.strengthMetrics('A1',blank)[0].value,null);
-const na={...blank,applicable:false,notes:'Sekolah tidak mempunyai asrama.'};assert.deepEqual(M.strengthIssues('A8',na),[]);assert.equal(M.cleanStrengthData('A4',na).applicable,true);
+const na={...blank,applicable:false,notes:'Sekolah tidak mempunyai asrama.',evidence:['https://example.test/not-applicable']};assert.deepEqual(M.strengthIssues('A8',na),[]);assert.equal(M.cleanStrengthData('A4',na).applicable,true);
 const a9={...M.emptyStrengthData(),values:{parentSupport:4,communitySupport:2},programs:[{id:'a',name:'Program 1',held:true,attendance:50,parents:100},{id:'b',name:'Program 2',held:true,attendance:0,parents:100},{id:'c',name:'Program 3',held:false,attendance:null,parents:null}]};
 assert.equal(M.strengthMetrics('A9',a9)[0].value,50,'Source formula excludes zero attendance');assert.equal(M.strengthMetrics('A9',a9)[1].value,50);assert.equal(M.strengthMetrics('A9',a9)[2].value,50);
 a9.programs[0].attendance=150;assert.equal(M.strengthMetrics('A9',a9)[0].value,100,'Source formula caps each attendance percentage');
