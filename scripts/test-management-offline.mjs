@@ -6,7 +6,7 @@ const strengthModel=compile(fs.readFileSync('migration/backend/strength-model.ts
 const model=compile(fs.readFileSync('migration/backend/management-model.ts','utf8')),M=await import(model);
 const scoring=compile(fs.readFileSync('migration/backend/scoring.ts','utf8').replace("import source from './rubric.json' with {type:'json'};",'const source='+fs.readFileSync('migration/backend/rubric.json','utf8')+';'));
 const domain=compile(fs.readFileSync('migration/backend/domain.ts','utf8').replace("'./scoring.ts'",JSON.stringify(scoring)));
-const api=await import(compile(fs.readFileSync('migration/backend/management-api.ts','utf8').replace("'./domain.ts'",JSON.stringify(domain)).replace("'./management-model.ts'",JSON.stringify(model))));
+const api=await import(compile(fs.readFileSync('migration/backend/management-api.ts','utf8').replace("'./domain.ts'",JSON.stringify(domain)).replace("'./management-model.ts'",JSON.stringify(model)).replace("'./scoring.ts'",JSON.stringify(scoring))));
 const vault=compile(fs.readFileSync('app/offline-vault.ts','utf8')),V=await import(vault);
 const C=await import(compile(fs.readFileSync('app/app-client.ts','utf8').replace("'./offline-vault'",JSON.stringify(vault)).replace("'../migration/backend/management-model'",JSON.stringify(model)).replace("'../migration/backend/strength-model'",JSON.stringify(strengthModel))));
 const school={id:'fixture-school',name:'Fictional school',code:'TEST-OFFLINE'};
@@ -41,3 +41,11 @@ connected=true;await engine.sync();assert.ok(engine.managementPending()[0].error
 const hidden=await engine.managementCall({action:'load',year:2026});assert.equal(hidden.records.find(r=>r.aspect==='1.1.1').canRead,false);assert.deepEqual(hidden.records.find(r=>r.aspect==='1.1.1').data.scores,{},'Local overlay must not defeat fresh server permissions');
 engine.lock();assert.equal(engine.key,null);assert.equal(engine.snapshot,null);
 console.log('PASS management offline: encrypted draft/cache, no plaintext, offline recovery, previous-year cache boundaries, official actions online-only, preserve queues across Standard 4 refresh, sync, recoverable conflicts, live assignment revocation and lock. No external accounts or database writes.');
+// New unit rows and admin summary must survive the same encrypted offline workflow.
+let adminOnline=true,adminEncrypted;
+const adminSession={...session,memberId:'admin',username:'admin',displayName:'Admin',isAdmin:true};
+const adminTransport=async(path,b)=>{if(!adminOnline)throw new C.RequestError('Offline fixture',0);if(path==='/api/data')return {...data,session:adminSession};if(path==='/api/session')return {session:adminSession};if(path==='/api/management')return b.action==='load'?api.managementView(d,admin,b.year):api.managementCommand(d,admin,b);throw Error('Unexpected path');};
+const ae=new C.OfflineEngine(adminSession,()=>adminOnline,adminTransport,async e=>adminEncrypted=e);await ae.load();await ae.managementCall({action:'load',year:2026});ae.meta=V.vaultMeta(adminSession);ae.key=await V.deriveVaultKey(password,ae.meta.salt);await ae.persist();adminOnline=false;
+const unitDraft={...M.emptyManagementData(),mode:'units',rows:[{id:'fixture-unit',name:'Private fixture unit',percent:0,notes:'Private fixture reference',url:'https://example.test/unit'}]};await ae.managementCall({action:'save',aspect:'3.1.2.1',year:2026,revision:0,data:unitDraft});
+const recovered=await V.decryptSnapshot(adminEncrypted,password);assert.equal(recovered.snapshot.managementPending[0].data.rows[0].percent,0);assert.ok(recovered.snapshot.managementCache['2026'].report);assert.ok(!JSON.stringify(adminEncrypted).includes('Private fixture unit'));assert.equal((await ae.managementCall({action:'load',year:2026})).records.find(r=>r.aspect==='3.1.2.1').data.rows[0].percent,0);await assert.rejects(ae.managementCall({action:'report-notes',year:2026,revision:0,notes:{}}),/memerlukan internet/);adminOnline=true;await ae.sync();assert.equal(d.management[2026]['3.1.2.1'].data.rows[0].percent,0);ae.lock();
+console.log('PASS unit rows/evidence and admin summary use encrypted offline cache, zero survives recovery/sync, PGB writes stay online-only.');

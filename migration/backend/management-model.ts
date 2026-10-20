@@ -1191,12 +1191,17 @@ export const MANAGEMENT_GROUPS=[
 export type ManagementUnitId=typeof MANAGEMENT_UNITS[number]['id'];
 export type ManagementStatus='draft'|'submitted'|'returned'|'verified';
 export const STATUS_NAMES:Record<ManagementStatus,string>={draft:'Draf',submitted:'Menunggu semakan',returned:'Perlu pembetulan',verified:'Disahkan'};
-export type ManagementData={scores:Record<string,number|null>;notes:string;evidence:string[]};
+export type ActionEvidence={document:string;notes:string;url:string};
+export type ManagementRow={id:string;name:string;percent:number|null;notes:string;url:string};
+export type ManagementData={scores:Record<string,number|null>;notes:string;evidence:string[];mode?:'actions'|'units';rows?:ManagementRow[];actionEvidence?:Record<string,ActionEvidence>};
+export type ReportNotes={revision:number;principal:string;schoolType:string;date:string;strengths:string;improvements:string;updatedAt:string|null};
+export type PdpcSummary={count:number;expectedCount:number;overall:number|null;aspects:{code:string;value:number|null;count:number}[]};
+export type SchoolReport={notes:ReportNotes;pdpc:Record<'submitted'|'all',Record<'all'|'kendiri'|'pertama'|'kedua',PdpcSummary>>};
 export type ManagementRecord={aspect:ManagementUnitId;year:number;revision:number;status:ManagementStatus;assigneeId:string|null;reviewerId:string|null;data:ManagementData;canRead:boolean;canEdit:boolean;canReview:boolean;canAdmin?:boolean;updatedAt:string|null;updatedBy:string|null;submittedAt:string|null;verifiedAt:string|null;verifiedBy:string|null;verifiedName?:string|null;feedback:string;lastMutationId?:string;lastMutationActor?:string};
-export type ManagementBundle={year:number;records:ManagementRecord[];people:{id:string;name:string}[];school:{code:string;name:string};sessionId:string};
+export type ManagementBundle={year:number;records:ManagementRecord[];people:{id:string;name:string}[];school:{code:string;name:string};sessionId:string;report?:SchoolReport};
 export type PendingManagement={year:number;aspect:ManagementUnitId;revision:number;data:ManagementData;mutationId:string;error?:string};
 export function emptyManagementData():ManagementData{return {scores:{},notes:'',evidence:[]};}
-export function emptyManagementRecord(aspect:ManagementUnitId,year:number):ManagementRecord{return {aspect,year,revision:0,status:'draft',assigneeId:null,reviewerId:null,data:emptyManagementData(),canRead:false,canEdit:false,canReview:false,updatedAt:null,updatedBy:null,submittedAt:null,verifiedAt:null,verifiedBy:null,feedback:''};}
+export function emptyManagementRecord(aspect:ManagementUnitId,year:number):ManagementRecord{return {aspect,year,revision:0,status:'draft',assigneeId:null,reviewerId:null,data:{...emptyManagementData(),mode:aggregateUnit(aspect)?'units':'actions'},canRead:false,canEdit:false,canReview:false,updatedAt:null,updatedBy:null,submittedAt:null,verifiedAt:null,verifiedBy:null,feedback:''};}
 export function validYear(year:unknown):year is number{return typeof year==='number'&&Number.isInteger(year)&&year>=2020&&year<=2100;}
 export function validManagementUnit(id:unknown):id is ManagementUnitId{return MANAGEMENT_UNITS.some(u=>u.id===id);}
 export function cleanManagementData(aspect:ManagementUnitId,input:unknown):ManagementData{
@@ -1208,7 +1213,113 @@ export function cleanManagementData(aspect:ManagementUnitId,input:unknown):Manag
  if(typeof v.notes!=='string'||v.notes.length>2000)throw Error('Catatan mestilah teks sehingga 2,000 aksara.');result.notes=v.notes.trim();
  if(!Array.isArray(v.evidence)||v.evidence.length>5)throw Error('Maksimum 5 pautan evidens.');
  result.evidence=v.evidence.map(value=>{if(typeof value!=='string'||value.length>500)throw Error('Pautan evidens terlalu panjang atau tidak sah.');return value.trim();}).filter(Boolean).map(value=>{let u:URL;try{u=new URL(value);}catch{throw Error('Gunakan pautan evidens http atau https yang lengkap.');}if(!['http:','https:'].includes(u.protocol)||u.username||u.password)throw Error('Pautan evidens tidak sah.');return u.href;});
+ result.mode=v.mode==='units'?'units':'actions';if(v.mode!==undefined&&!['actions','units'].includes(v.mode))throw Error('Kaedah pengisian tidak sah.');if(result.mode==='units'&&!aggregateUnit(aspect))throw Error('Standard ini menggunakan skor tindakan.');
+ if(v.rows!==undefined&&!Array.isArray(v.rows))throw Error('Senarai unit tidak sah.');if((v.rows?.length??0)>50)throw Error('Maksimum 50 panitia / unit.');const ids=new Set<string>(),names=new Set<string>();
+ result.rows=(v.rows??[]).map(row=>{if(!row||typeof row!=='object')throw Error('Baris unit tidak sah.');const id=boundedText(row.id,80),name=boundedText(row.name,180),key=name.toLocaleUpperCase('ms-MY');if(!id||ids.has(id)||name&&names.has(key))throw Error('Elakkan ID atau nama panitia / unit berulang.');ids.add(id);if(name)names.add(key);const percent=row.percent;if(percent!==null&&(typeof percent!=='number'||!Number.isFinite(percent)||percent<0||percent>100))throw Error('Peratus unit mestilah antara 0 hingga 100 atau kosong.');return {id,name,percent,notes:boundedText(row.notes??'',500),url:evidenceURL(row.url??'')};});
+ if(v.actionEvidence!==undefined&&(!v.actionEvidence||typeof v.actionEvidence!=='object'||Array.isArray(v.actionEvidence)))throw Error('Evidens tindakan tidak sah.');result.actionEvidence={};
+ for(const [id,e] of Object.entries(v.actionEvidence??{})){if(!keys.has(id)||!e||typeof e!=='object')throw Error('Evidens tindakan tidak sah.');const document=boundedText(e.document??'',240);if(document&&!documentTypes(aspect).includes(document))throw Error('Pilih kategori dokumen yang disediakan.');result.actionEvidence[id]={document,notes:boundedText(e.notes??'',500),url:evidenceURL(e.url??'')};}
  return result;
 }
-export function managementIssues(aspect:ManagementUnitId,data:ManagementData):string[]{const unit=MANAGEMENT_UNITS.find(u=>u.id===aspect);if(!unit)return ['Standard tidak sah.'];const issues:string[]=[];if(unit.actions.some(a=>data.scores[a.id]===null||data.scores[a.id]===undefined))issues.push('Lengkapkan skor semua tindakan sebelum menghantar.');if(data.notes.trim().length<5&&!data.evidence.some(s=>s.trim()))issues.push('Nyatakan catatan / rujukan evidens atau pautan evidens sebelum menghantar.');return issues;}
-export function managementTotals(aspect:ManagementUnitId,data:ManagementData){const unit=MANAGEMENT_UNITS.find(u=>u.id===aspect)!;const scores=unit.actions.map(a=>data.scores[a.id]),filled=scores.filter(n=>n!==null&&n!==undefined).length;return {count:scores.length,filled,maximum:scores.length*4,total:filled===scores.length?scores.reduce<number>((sum,n)=>sum+(n??0),0):null};}
+export function managementIssues(aspect:ManagementUnitId,data:ManagementData):string[]{
+ const unit=MANAGEMENT_UNITS.find(u=>u.id===aspect);if(!unit)return ['Standard tidak sah.'];const issues:string[]=[];
+ if(data.mode==='units'){
+  if(!aggregateUnit(aspect))issues.push('Standard ini menggunakan skor tindakan.');
+  if(!data.rows?.length)issues.push('Tambah sekurang-kurangnya satu panitia / unit.');
+  if(data.rows?.some(r=>!r.name.trim()||r.percent===null||r.percent===undefined))issues.push('Lengkapkan nama dan peratus setiap panitia / unit yang disenaraikan.');
+ }else if(unit.actions.some(a=>data.scores[a.id]===null||data.scores[a.id]===undefined))issues.push('Lengkapkan skor semua tindakan sebelum menghantar.');
+ const detailed=data.mode==='units'?data.rows?.some(r=>r.notes.trim()||r.url):Object.values(data.actionEvidence??{}).some(e=>e.notes.trim()||e.url||e.document);
+ if(data.notes.trim().length<5&&!data.evidence.some(s=>s.trim())&&!detailed)issues.push('Nyatakan catatan / rujukan evidens atau pautan evidens sebelum menghantar.');return issues;
+}
+export function managementTotals(aspect:ManagementUnitId,data:ManagementData){
+ const unit=MANAGEMENT_UNITS.find(u=>u.id===aspect)!;
+ if(data.mode==='units'){
+  const rows=data.rows??[],values=rows.map(r=>r.percent).filter((n):n is number=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<=100),complete=rows.length>0&&values.length===rows.length&&rows.every(r=>r.name.trim());
+  return {count:rows.length,filled:values.length,maximum:null,total:null,percentage:complete?mean(values):null,preview:mean(values),frequencies:null,mode:'units' as const};
+ }
+ const scores=unit.actions.map(a=>data.scores[a.id]),filled=scores.filter(n=>typeof n==='number'&&Number.isInteger(n)&&n>=0&&n<=4).length,total=filled===scores.length?scores.reduce<number>((sum,n)=>sum+(n??0),0):null;
+ return {count:scores.length,filled,maximum:scores.length*4,total,percentage:total===null?null:total/(scores.length*4)*100,preview:total===null?null:total/(scores.length*4)*100,frequencies:[0,1,2,3,4].map(n=>scores.filter(s=>s===n).length),mode:'actions' as const};
+}
+export const AGGREGATE_UNITS:ManagementUnitId[]=['3.1.2.1','3.1.2.2','3.1.2.3','3.1.2.4','3.2.2.1','3.2.3.1','3.2.4.1'];
+export function aggregateUnit(aspect:ManagementUnitId){return AGGREGATE_UNITS.includes(aspect);}
+export function unitLabel(aspect:ManagementUnitId){return aspect.startsWith('3.1.')?'Panitia mata pelajaran':aspect==='3.2.2.1'?'Kelab / persatuan':aspect==='3.2.3.1'?'Badan beruniform':'Sukan / permainan';}
+export const mean=(values:number[])=>values.length?values.reduce((s,n)=>s+n,0)/values.length:null;
+function boundedText(value:unknown,max:number){if(typeof value!=='string'||value.length>max)throw Error('Teks terlalu panjang atau tidak sah.');return value.trim();}
+function evidenceURL(value:unknown){const s=boundedText(value,500);if(!s)return '';let u:URL;try{u=new URL(s);}catch{throw Error('Gunakan pautan evidens http atau https yang lengkap.');}if(!['http:','https:'].includes(u.protocol)||u.username||u.password)throw Error('Pautan evidens tidak sah.');return u.href;}
+export function defaultReportNotes():ReportNotes{return {revision:0,principal:'',schoolType:'',date:'',strengths:'',improvements:'',updatedAt:null};}
+export function cleanReportNotes(input:unknown):Omit<ReportNotes,'revision'|'updatedAt'>{if(!input||typeof input!=='object'||Array.isArray(input))throw Error('Maklumat laporan tidak sah.');const v=input as ReportNotes,date=boundedText(v.date??'',10);if(date&&(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date))throw Error('Tarikh laporan tidak sah.');return {principal:boundedText(v.principal??'',180),schoolType:boundedText(v.schoolType??'',100),date,strengths:boundedText(v.strengths??'',3000),improvements:boundedText(v.improvements??'',3000)};}
+export function managementAverage(records:ManagementRecord[],ids:ManagementUnitId[],verifiedOnly:boolean,pending:ManagementUnitId[]=[]){const values=ids.flatMap(id=>{const r=records.find(r=>r.aspect===id);if(!r?.canRead||verifiedOnly&&(r.status!=='verified'||pending.includes(id)))return [];const p=managementTotals(id,r.data).percentage;return p===null?[]:[p];});return {value:mean(values),covered:values.length,expected:ids.length,complete:values.length===ids.length};}
+export function schoolCategories(bundle:ManagementBundle,verifiedOnly:boolean,pending:ManagementUnitId[]=[],stage:'all'|'kendiri'|'pertama'|'kedua'='all'){
+ const selection=(groups:string[])=>MANAGEMENT_UNITS.filter(u=>groups.includes(u.group)).map(u=>u.id);const category=(name:string,groups:string[])=>({name,...managementAverage(bundle.records,selection(groups),verifiedOnly,pending)});const pdpc=bundle.report?.pdpc[verifiedOnly?'submitted':'all'][stage];
+ return [category('Akademik',['3.1']),category('Kokurikulum',['3.2']),category('Sahsiah',['3.3']),{name:'Guru',value:pdpc?.overall??null,covered:pdpc?.count??0,expected:pdpc?.expectedCount??0,complete:!!pdpc?.expectedCount&&pdpc.count===pdpc.expectedCount},category('Sekolah',['1','2'])];
+}
+
+export const DOCUMENT_TYPES:Record<string,string[]>={
+ "1": [
+  "PERANCANGAN STRATEGIK ORGANISASI (PSO)",
+  "PANDUAN PENGURUSAN SEKOLAH",
+  "TAKWIM PENGURUSAN SEKOLAH",
+  "DOKUMEN PEMANTAUAN",
+  "DOKUMEN INSTRUKSIONAL",
+  "DOKUMEN BIMBINGAN",
+  "DOKUMEN DORONGAN",
+  "Lain-lain"
+ ],
+ "2": [
+  "PERANCANGAN STRATEGIK ORGANISASI (PSO)",
+  "PANDUAN PENGURUSAN SEKOLAH",
+  "DOKUMEN PEMANTAUAN",
+  "DOKUMEN SUMBER MANUSIA",
+  "DOKUMEN PENGURUSAN ASET",
+  "DOKUMEN PENGURUSAN KEWANGAN",
+  "DOKUMEN PENGURUSAN SUMBER PENDIDIKAN",
+  "DOKUMEN PENYELENGGARAAN PERSEKITARAN FIZIKAL",
+  "DOKUMEN KETETAPAN PERATURAN SEKOLAH",
+  "DOKUMEN PELAKSANAAN PROGRAM SEKOLAH",
+  "DOKUMEN PERMUAFAKATAN SUMBANGAN DAN RANGKAIAN PIBKS",
+  "Lain-lain"
+ ],
+ "3.1": [
+  "PERANCANGAN STRATEGIK ORGANISASI (PSO)",
+  "PANDUAN PENGURUSAN SEKOLAH",
+  "TAKWIM PENGURUSAN KOKURIKULUM",
+  "DOKUMEN KETETAPAN KURIKULUM/KOKURIKULUM/HEM",
+  "DOKUMEN PENGURUSAN PANITIA /JK/UNIT KURIKULUM/KOKURIKULUM/HEM",
+  "DOKUMEN PENGURUSAN PENILAIAN MURID",
+  "DOKUMEN PROGRAM KURIKULUM GURU",
+  "DOKUMEN PROGRAM KURIKULUM/KOKURIKULUM/HEM /MURID",
+  "DOKUMEN PENGURUSAN KEWANGAN PANITIA/JK/UNIT KURIKULUM/KOKURIKULUM/HEM",
+  "DOKUMEN PEMANTAUAN",
+  "DOKUMEN SUMBER MANUSIA",
+  "DOKUMEN PENGURUSAN ASET",
+  "DOKUMEN PENGURUSAN KEWANGAN",
+  "DOKUMEN PENGURUSAN SUMBER PENDIDIKAN",
+  "DOKUMEN PENYELENGGARAAN PERSEKITARAN FIZIKAL",
+  "DOKUMEN KETETAPAN PERATURAN SEKOLAH",
+  "DOKUMEN PELAKSANAAN PROGRAM SEKOLAH",
+  "DOKUMEN PERMUAFAKATAN SUMBANGAN DAN RANGKAIAN PIBKS",
+  "Lain-lain"
+ ],
+ "3.2": [
+  "PERANCANGAN STRATEGIK ORGANISASI (PSO)",
+  "PANDUAN PENGURUSAN SEKOLAH",
+  "TAKWIM PENGURUSAN KOKURIKULUM",
+  "DOKUMEN KETETAPAN KOKURIKULUM",
+  "DOKUMEN PENGURUSAN UNIT KOKURIKULUM",
+  "DOKUMEN PENGURUSAN PROGRAM KOKURIKULUM",
+  "DOKUMEN PENGURUSAN PENTAKSIRAN KOKURIKULUM",
+  "DOKUMEN PENGURUSAN PAJSK",
+  "ANALISIS PENTAKSIRAN PAJSK",
+  "Lain-lain"
+ ],
+ "3.3": [
+  "PERANCANGAN STRATEGIK ORGANISASI (PSO)",
+  "PANDUAN PENGURUSAN SEKOLAH",
+  "TAKWIM PENGURUSAN HEM",
+  "DOKUMEN KETETAPAN HEM",
+  "DOKUMEN PENGURUSAN UNIT HEM",
+  "DOKUMEN PENGURUSAN PROGRAM HEM",
+  "DOKUMEN PENTAKSIRAN PSIKOMETRIK",
+  "Lain-lain"
+ ]
+};
+export function documentTypes(aspect:ManagementUnitId){const group=MANAGEMENT_UNITS.find(u=>u.id===aspect)!.group;return DOCUMENT_TYPES[group]??["Lain-lain"];}
