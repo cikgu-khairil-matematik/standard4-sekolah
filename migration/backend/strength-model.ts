@@ -39,7 +39,7 @@ function string(v:unknown,max:number){if(typeof v!=='string'||v.length>max)throw
 export function cleanStrengthData(aspect:AspectId,input:unknown):StrengthData{
  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('Maklumat aspek tidak sah.');const v=input as StrengthData;
  const result=emptyStrengthData();result.applicable=aspect==='A8'?v.applicable!==false:true;result.none=v.none===true;result.notes=string(v.notes??'',2000);
- if(v.evidence!==undefined&&(!Array.isArray(v.evidence)||v.evidence.length>5))throw Error('Maksimum 5 pautan evidens.');
+ if(v.evidence!==undefined&&(!Array.isArray(v.evidence)||v.evidence.length>20))throw Error('Maksimum 20 pautan evidens.');
  result.evidence=(v.evidence??[]).map(s=>string(s,500)).filter(Boolean).map(value=>{let u:URL;try{u=new URL(value);}catch{throw Error('Gunakan pautan evidens http atau https yang lengkap.');}if(!['https:','http:'].includes(u.protocol)||u.username||u.password)throw Error('Pautan evidens tidak sah.');return u.href;});
  for(const f of FIELDS[aspect]??[])result.values[f.key]=number(v.values?.[f.key],f.percent);
  if(HAS_INVENTORY.includes(aspect)){
@@ -55,7 +55,7 @@ export function cleanStrengthData(aspect:AspectId,input:unknown):StrengthData{
 }
 export function strengthIssues(aspect:AspectId,d:StrengthData):string[]{
  if(!d.applicable)return d.notes.trim().length<10?['Nyatakan sebab asrama tidak berkenaan, sekurang-kurangnya 10 aksara.']:[];
- const issues:string[]=[];for(const f of FIELDS[aspect]??[])if(d.values[f.key]==null)issues.push('Lengkapkan '+f.label.toLowerCase()+'.');
+ const issues:string[]=[];if(!d.evidence.some(v=>v.trim()))issues.push('Masukkan sekurang-kurangnya satu pautan atau fail evidens sebelum menghantar.');for(const f of FIELDS[aspect]??[])if(d.values[f.key]==null)issues.push('Lengkapkan '+f.label.toLowerCase()+'.');
  if(aspect==='A2'&&d.notes.trim().length<5)issues.push('Nyatakan sumber rumusan Standard 4 tahun sebelumnya dalam catatan.');
  if(HAS_INVENTORY.includes(aspect)){
   if(!d.rows.length&&!d.none)issues.push('Tambah prasarana atau tandakan tiada prasarana.');

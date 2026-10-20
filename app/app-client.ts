@@ -115,3 +115,5 @@ export function managementPending(){return controller?.managementPending()??[];}
 export async function discardManagementDraft(year:number,aspect:string){if(!controller)throw Error('Sila log masuk dahulu.');await controller.discardManagement(year,aspect);}
 export async function syncManagementDrafts(){if(!controller)throw Error('Sila log masuk dahulu.');await controller.sync();}
 export function subscribeManagement(listener:()=>void){return controller?.subscribe(listener)??(()=>undefined);}
+
+export async function resourcesApi<T>(body:Record<string,unknown>):Promise<T>{if(!controller)throw Error('Sila log masuk dahulu.');if(!controller.connected())throw Error('Tetapan, tugasan dan muat naik evidens memerlukan internet.');return controller.transport<T>('/api/resources',body,controller.session.memberId);}
