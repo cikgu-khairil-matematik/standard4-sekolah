@@ -1,3 +1,5 @@
+import {achievementCommand,achievementView,type AchievementStore} from './achievement-api.ts';
+import {effectiveAchievementPSS,emptyAchievementRecord} from './achievement-model.ts';
 import {admin,audit,fail,now,type Row,type SchoolDoc} from './domain.ts';
 import {ASPECTS,validYear} from './strength-model.ts';
 import {MANAGEMENT_UNITS} from './management-model.ts';
@@ -20,16 +22,19 @@ export function resourcesCommand(d:SchoolDoc,m:Row,b:Row){
   const next={folderUrl,clientId,apiKey,projectNumber,revision:old.revision+1,updatedAt:now()};store.resources??={};store.resources.settings=next;audit(d,m,'evidence_settings',d.school.id,{revision:old.revision,folderUrl:old.folderUrl},{revision:next.revision,folderUrl});return resourcesView(d,m,b.year);
  }
  if(b.action==='assign-all'){
-  admin(m);if(!['strength','management'].includes(b.module)||!Array.isArray(b.rows)||b.rows.length<1||b.rows.length>42)fail('Senarai tugasan tidak sah.');
+  admin(m);if(!['strength','management','achievement'].includes(b.module)||!Array.isArray(b.rows)||b.rows.length<1||b.rows.length>42)fail('Senarai tugasan tidak sah.');
   const ids=new Set();for(const row of b.rows){if(ids.has(row.aspect))fail('Aspek berulang.');ids.add(row.aspect);}
   // Validate against a private copy first: a single invalid or stale row leaves every assignment unchanged.
-  const copy=structuredClone(d);for(const row of b.rows){const cmd={...row,action:'assign',year:b.year};if(b.module==='strength')strengthCommand(copy,m,cmd);else managementCommand(copy,m,cmd);}
-  if(b.module==='strength')(d as Row).strength=(copy as Row).strength;else (d as Row).management=(copy as Row).management;d.audit=copy.audit;
+  const copy=structuredClone(d);for(const row of b.rows){const cmd={...row,action:'assign',year:b.year};if(b.module==='strength')strengthCommand(copy,m,cmd);else if(b.module==='management')managementCommand(copy,m,cmd);else achievementCommand(copy,m,cmd);}
+  if(b.module==='strength')(d as Row).strength=(copy as Row).strength;else if(b.module==='management')(d as Row).management=(copy as Row).management;else{(d as Row).achievement=(copy as Row).achievement;store.resources??={};store.resources.pss=(copy as Store).resources?.pss;}d.audit=copy.audit;
   audit(d,m,'assignments_confirmed',b.module+':'+b.year,null,{aspects:[...ids]});return {ok:true,count:b.rows.length};
  }
  if(b.action==='pss'){
   admin(m);const old=store.resources?.pss?.[String(b.year)]??{revision:0,rows:[]};if(b.revision!==old.revision)fail('Senarai PSS telah berubah. Muat semula dahulu.',409);if(!Array.isArray(b.rows)||b.rows.length>100)fail('Maksimum 100 penugasan PSS.');const ids=new Set(),codes=new Set();
-  const rows=b.rows.map((r:Row)=>{const id=str(r.id,80),standard=str(r.standard,40),title=str(r.title,200);if(!id||ids.has(id)||codes.has(standard)||!/^5(?:\.\d{1,2}){0,3}$/.test(standard)||!title)fail('Lengkapkan kod Standard 5, tajuk dan elakkan pendua.');ids.add(id);codes.add(standard);if(!Array.isArray(r.memberIds)||!r.memberIds.length||r.memberIds.length>50||new Set(r.memberIds).size!==r.memberIds.length||r.memberIds.some((id:unknown)=>!d.members.some(p=>p.id===id&&p.active===1)))fail('Pilih PSS daripada akaun sekolah yang aktif.');return {id,standard,title,memberIds:r.memberIds};});
+  const rows=b.rows.map((r:Row)=>{const id=str(r.id,80),standard=str(r.standard,40),title=str(r.title,200);if(!id||ids.has(id)||codes.has(standard)||!/^5(?:\.\d{1,2}){0,3}$/.test(standard)||!title)fail('Lengkapkan kod Standard 5, tajuk dan elakkan pendua.');ids.add(id);codes.add(standard);if(!Array.isArray(r.memberIds)||r.memberIds.length>50||new Set(r.memberIds).size!==r.memberIds.length||r.memberIds.some((id:unknown)=>!d.members.some(p=>p.id===id&&p.active===1)))fail('Pilih PSS daripada akaun sekolah yang aktif.');return {id,standard,title,memberIds:r.memberIds};});
+  const changed=achievementView(d,m,b.year).records.filter(r=>JSON.stringify([...r.pssIds].sort())!==JSON.stringify(effectiveAchievementPSS(rows,r.aspect).sort()));
+  for(const r of changed){if(['submitted','verified'].includes(r.status))fail('Buka semula borang '+r.aspect+' sebelum menukar PSS.',409);if(effectiveAchievementPSS(rows,r.aspect).includes(r.reviewerId??''))fail('PSS dan penyemak '+r.aspect+' mesti berbeza.');}
+  for(const r of changed){const a=d as AchievementStore;a.achievement??={};a.achievement[String(b.year)]??={};const oldRecord=a.achievement[String(b.year)][r.aspect]??emptyAchievementRecord(r.aspect,b.year);a.achievement[String(b.year)][r.aspect]={...oldRecord,revision:oldRecord.revision+1,updatedAt:now(),updatedBy:m.id};}
   store.resources??={};store.resources.pss??={};store.resources.pss[String(b.year)]={revision:old.revision+1,rows};audit(d,m,'pss_achievement',String(b.year),old,{revision:old.revision+1,rows});return resourcesView(d,m,b.year);
  }
  if(b.action==='folder-id'){
@@ -44,7 +49,7 @@ export function resourcesCommand(d:SchoolDoc,m:Row,b:Row){
   const module=b.module,aspect=str(b.aspect,40),action=str(b.actionId??'',10).toLowerCase();if(!['strength','management','achievement'].includes(module))fail('Modul evidens tidak sah.');
   if(module==='strength'){if(!ASPECTS.some(a=>a.id===aspect)||action)fail('Aspek tidak sah.');const r=strengthView(d,m,b.year).records.find(r=>r.aspect===aspect);if(!r?.canEdit)fail('Anda tidak boleh memuat naik evidens aspek ini.',403);}
   if(module==='management'){const unit=MANAGEMENT_UNITS.find(u=>u.id===aspect),r=managementView(d,m,b.year).records.find(r=>r.aspect===aspect);if(!unit||action&&!unit.actions.some(a=>a.id===action))fail('Tindakan tidak sah.');if(!r?.canEdit)fail('Anda tidak boleh memuat naik evidens standard ini.',403);}
-  if(module==='achievement'){const pss=store.resources?.pss?.[String(b.year)]?.rows.find(r=>r.standard===aspect);if(m.role!=='admin'&&!pss?.memberIds.includes(m.id))fail('Anda belum ditugaskan sebagai PSS.',403);if(!/^5(?:\.\d{1,2}){0,3}$/.test(aspect))fail('Standard tidak sah.');}
+  if(module==='achievement'){const r=achievementView(d,m,b.year).records.find(r=>r.aspect===aspect);if(action)fail('Medan tindakan tidak digunakan bagi Standard 5.');if(!r?.canEdit)fail('Anda tidak boleh memuat naik evidens Standard 5 ini.',403);}
   const settings=store.resources?.settings??defaults();if(!folderId(settings.folderUrl)||!settings.clientId||!settings.apiKey||!settings.projectNumber)fail('Pentadbir perlu melengkapkan tetapan Google Drive dahulu.',409);
   const ext=str(b.extension,10).toLowerCase();if(!['pdf','jpg','jpeg','png','webp','doc','docx','xls','xlsx','ppt','pptx','txt','csv','odt','ods','odp'].includes(ext))fail('Jenis fail tidak disokong.');if(!Number.isInteger(b.size)||b.size<1||b.size>20*1024*1024)fail('Saiz fail mestilah 1 bait hingga 20 MB.');
   store.resources??={};store.resources.counters??={};const code=aspect+(action?'.'+action.toUpperCase():''),key=[b.year,module,code].join(':'),n=(store.resources.counters[key]??0)+1;store.resources.counters[key]=n;
