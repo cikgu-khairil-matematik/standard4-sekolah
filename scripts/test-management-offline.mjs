@@ -8,7 +8,7 @@ const scoring=compile(fs.readFileSync('migration/backend/scoring.ts','utf8').rep
 const domain=compile(fs.readFileSync('migration/backend/domain.ts','utf8').replace("'./scoring.ts'",JSON.stringify(scoring)));
 const api=await import(compile(fs.readFileSync('migration/backend/management-api.ts','utf8').replace("'./domain.ts'",JSON.stringify(domain)).replace("'./management-model.ts'",JSON.stringify(model)).replace("'./scoring.ts'",JSON.stringify(scoring))));
 const vault=compile(fs.readFileSync('app/offline-vault.ts','utf8')),V=await import(vault);
-const C=await import(compile(fs.readFileSync('app/app-client.ts','utf8').replace("'./offline-vault'",JSON.stringify(vault)).replace("'../migration/backend/management-model'",JSON.stringify(model)).replace("'../migration/backend/strength-model'",JSON.stringify(strengthModel))));
+const C=await import(compile(fs.readFileSync('app/app-client.ts','utf8').replace("'../migration/backend/achievement-model'",JSON.stringify(compile(fs.readFileSync('migration/backend/achievement-model.ts','utf8')))).replace("'./offline-vault'",JSON.stringify(vault)).replace("'../migration/backend/management-model'",JSON.stringify(model)).replace("'../migration/backend/strength-model'",JSON.stringify(strengthModel))));
 const school={id:'fixture-school',name:'Fictional school',code:'TEST-OFFLINE'};
 const admin={id:'admin',displayName:'Admin',role:'admin',active:1},writer={id:'writer',displayName:'Writer',role:'member',active:1},reviewer={id:'reviewer',displayName:'Reviewer',role:'member',active:1},other={id:'other',displayName:'Other',role:'member',active:1};
 const d={school,members:[admin,writer,reviewer,other],teachers:[],assessments:[],audit:[],sessions:[],invitations:[],imports:[]};

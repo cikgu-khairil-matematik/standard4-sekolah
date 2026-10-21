@@ -1,3 +1,4 @@
+import {achievementCommand,achievementView} from './achievement-api.ts';
 import {createClient} from 'npm:@supabase/supabase-js@2.102.0';
 import {ApiError,fail,text,code,username,password,secret,hash,now,actor,session,audit,getData,dataCommand,getSchool,schoolCommand,type SchoolDoc,type Row} from './domain.ts';
 import {resourcesCommand,resourcesView} from './resources-api.ts';
@@ -73,7 +74,7 @@ Deno.serve(async(req:Request)=>{
  try{
   if(!req.headers.get('content-type')?.startsWith('application/json'))fail('Gunakan JSON.',415);const raw=await req.text();if(raw.length>350000)fail('Permintaan terlalu besar.',413);let b:Row;try{b=JSON.parse(raw);}catch{fail('Maklumat tidak sah.');}
   if(!b!||typeof b!=='object'||Array.isArray(b))fail('Maklumat tidak sah.');
-  if(!['/api/session','/api/data','/api/school','/api/strength','/api/management','/api/resources'].includes(b!.path)||!['GET','POST'].includes(b!.method))fail('Laluan tidak sah.',404);
+  if(!['/api/session','/api/data','/api/school','/api/strength','/api/management','/api/resources','/api/achievement'].includes(b!.path)||!['GET','POST'].includes(b!.method))fail('Laluan tidak sah.',404);
   const ip=req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||'shared';await limit('ip:'+await hash(ip),300,600);if(b!.body?.action==='register-school')await limit('register:'+await hash(ip),10,3600);
   for(let attempt=0;attempt<6;attempt++)try{
    if(b!.path==='/api/session')return reply(await sessionRoute(req,b!));
@@ -85,6 +86,10 @@ Deno.serve(async(req:Request)=>{
    if(b!.path==='/api/strength'){
     if(b!.body?.action==='load')return reply(strengthView(row.data,m,b!.body.year));
     if(b!.method!=='POST')fail('Gunakan POST.',405);await limit('write:'+m.id,300,600);const result=strengthCommand(row.data,m,b!.body||{});await commit(row);return reply(result);
+   }
+   if(b!.path==='/api/achievement'){
+    if(b!.body?.action==='load')return reply(achievementView(row.data,m,b!.body.year));
+    if(b!.method!=='POST')fail('Gunakan POST.',405);await limit('write:'+m.id,300,600);const result=achievementCommand(row.data,m,b!.body||{});await commit(row);return reply(result);
    }
    if(b!.path==='/api/management'){
     if(b!.body?.action==='load')return reply(managementView(row.data,m,b!.body.year));
