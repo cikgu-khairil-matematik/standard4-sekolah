@@ -39,7 +39,7 @@ export class OfflineEngine{
  }
  if(!this.key){if(!this.connected())throw Error('Aktifkan mod offline semasa online sebelum menyimpan pada peranti.');const d=await this.transport<{assessment:Assessment}>('/api/data',{action:'save',assessment:a},this.session.memberId);this.apply(d.assessment);this.changed();return d as T;}
  if(!this.snapshot)throw Error('Data peranti belum tersedia.');
- const id=a.id||[a.teacherId,a.year,a.stage].join(':'),old=this.snapshot.pending.find(p=>p.assessment.id===id);const local={...a,id,revision:old?.assessment.revision??a.revision,updatedAt:new Date().toISOString(),localPending:true};
+ const id=a.id||[a.teacherId,a.year,a.stage,...(a.epoch?[a.epoch]:[])].join(':'),old=this.snapshot.pending.find(p=>p.assessment.id===id);const local={...a,id,revision:old?.assessment.revision??a.revision,updatedAt:new Date().toISOString(),localPending:true};
  const entry:PendingDraft={assessment:local,teacherName:this.snapshot.data.teachers.find(t=>t.id===a.teacherId)?.name||'Guru'};
  this.snapshot.pending=[...this.snapshot.pending.filter(p=>p.assessment.id!==id),entry];this.apply(local);await this.persist();this.changed();
  if(this.connected())try{await this.sync();}catch(e){this.message=(e as Error).message;this.emit();}const pending=this.snapshot.pending.find(p=>p.assessment.id===id);if(pending?.error&&pending.server)throw new RequestError(pending.error,409,{assessment:pending.server});

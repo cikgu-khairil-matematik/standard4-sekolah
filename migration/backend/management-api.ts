@@ -10,12 +10,12 @@ export function scoringReport(d:SchoolDoc,year:number):SchoolReport{
  for(const scope of ['submitted','all'] as const){
   pdpc[scope]={} as SchoolReport['pdpc']['all'];
   for(const stage of ['all',...stages] as const){
-   const selected=d.assessments.filter(a=>a.year===year&&teachers.has(a.teacherId)&&stages.includes(a.stage)&&(stage==='all'||a.stage===stage)&&(scope==='all'||a.status==='submitted'));
+   const selected=d.assessments.filter(a=>a.year===year&&teachers.has(a.teacherId)&&stages.includes(a.stage)&&(stage==='all'||a.stage===stage)&&(scope==='all'||['submitted','verified'].includes(a.status))&&(d.pdpc?.version!==2||a.stage!=='kedua'));
    // A school document normally has one assessment per teacher/year/stage. Keep the latest if a legacy import duplicated one.
    const latest=new Map<string,Row>();for(const a of selected){const key=a.teacherId+':'+a.stage,old=latest.get(key);if(!old||String(a.updatedAt??'')>String(old.updatedAt??''))latest.set(key,a);}
    const results=[...latest.values()].flatMap(a=>{const teacher=teachers.get(a.teacherId)!;if(!['perdana','khas'].includes(teacher.type)||!Array.isArray(a.scores)||a.scores.length!==38)return [];const result=calculate(a.scores,teacher.type as TeacherType);return result.total===null?[]:[result];});
    const codes=['4.1.1','4.2.1','4.2.2','4.3.1','4.4.1','4.4.2','4.5.1','4.6.1'];
-   pdpc[scope][stage]={count:results.length,expectedCount:teachers.size*(stage==='all'?3:1),overall:mean(results.map(r=>r.total!)),aspects:codes.map(code=>{const values=results.flatMap(r=>{const a=r.aspects.find(a=>a.code===code);return a?.score===null||a?.score===undefined?[]:[a.score];});return {code,value:mean(values),count:values.length};})} satisfies PdpcSummary;
+   pdpc[scope][stage]={count:results.length,expectedCount:teachers.size*(stage==='all'?(d.pdpc?.version===2?2:3):1),overall:mean(results.map(r=>r.total!)),aspects:codes.map(code=>{const values=results.flatMap(r=>{const a=r.aspects.find(a=>a.code===code);return a?.score===null||a?.score===undefined?[]:[a.score];});return {code,value:mean(values),count:values.length};})} satisfies PdpcSummary;
   }
  }
  return {notes:structuredClone((d as Store).managementReports?.[String(year)]??defaultReportNotes()),pdpc};
