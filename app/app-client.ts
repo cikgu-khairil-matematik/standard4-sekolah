@@ -56,6 +56,7 @@ export class OfflineEngine{
    if(!this.key||!this.snapshot||this.snapshot.offlineUntil<=new Date().toISOString())throw Error('Log masuk online dan aktifkan draf offline dahulu.');const cached=this.snapshot.strengthCache?.[String(year)];if(!cached)throw Error('Buka Kekuatan Kami untuk tahun ini semasa online dahulu.');return this.strengthOverlay(cached);
   }
   if(body.action!=='save'){
+   if(body.action==='reset-all'&&this.strengthPending().some(p=>p.year===year))throw Error('Selaraskan semua draf tahun ini sebelum reset.');
    if(!this.connected())throw Error('Penugasan, penghantaran dan pengesahan memerlukan internet.');if(this.strengthPending().some(p=>p.year===year&&p.aspect===body.aspect))throw Error('Selaraskan draf aspek ini dahulu.');return this.rememberStrength(await this.transport<StrengthBundle>('/api/strength',body,this.session.memberId));
   }
   if(!validAspect(body.aspect))throw Error('Aspek tidak sah.');const data=cleanStrengthData(body.aspect,body.data);
@@ -80,6 +81,7 @@ export class OfflineEngine{
    if(!this.key||!this.snapshot||this.snapshot.offlineUntil<=new Date().toISOString())throw Error('Log masuk online dan aktifkan draf offline dahulu.');const cached=this.snapshot.managementCache?.[String(year)];if(!cached)throw Error('Buka Pengurusan Kami untuk tahun ini semasa online dahulu.');return this.managementOverlay(cached);
   }
   if(body.action!=='save'){
+   if(body.action==='reset-all'&&this.strengthPending().some(p=>p.year===year))throw Error('Selaraskan semua draf tahun ini sebelum reset.');
    if(!this.connected())throw Error('Penugasan, penghantaran dan pengesahan memerlukan internet.');if(this.managementPending().some(p=>p.year===year&&p.aspect===body.aspect))throw Error('Selaraskan draf aspek ini dahulu.');return this.rememberManagement(await this.transport<ManagementBundle>('/api/management',body,this.session.memberId));
   }
   if(!validManagementUnit(body.aspect))throw Error('Aspek tidak sah.');const data=cleanManagementData(body.aspect,body.data);
@@ -104,6 +106,7 @@ export class OfflineEngine{
    if(!this.key||!this.snapshot||this.snapshot.offlineUntil<=new Date().toISOString())throw Error('Log masuk online dan aktifkan draf offline dahulu.');const cached=this.snapshot.achievementCache?.[String(year)];if(!cached)throw Error('Buka Pencapaian Kami untuk tahun ini semasa online dahulu.');return this.achievementOverlay(cached);
   }
   if(body.action!=='save'){
+   if(body.action==='reset-all'&&this.strengthPending().some(p=>p.year===year))throw Error('Selaraskan semua draf tahun ini sebelum reset.');
    if(!this.connected())throw Error('Penugasan, penghantaran dan pengesahan memerlukan internet.');if(this.achievementPending().some(p=>p.year===year&&p.aspect===body.aspect))throw Error('Selaraskan draf aspek ini dahulu.');return this.rememberAchievement(await this.transport<AchievementBundle>('/api/achievement',body,this.session.memberId));
   }
   if(!validAchievement(body.aspect))throw Error('Aspek tidak sah.');const data=cleanAchievementData(body.aspect,body.data);

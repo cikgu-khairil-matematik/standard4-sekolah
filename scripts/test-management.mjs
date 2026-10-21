@@ -57,3 +57,12 @@ call(reportD,'admin',{action:'report-notes',revision:0,notes});assert.equal(view
 const avBundle=view(reportD);for(const r of avBundle.records){r.data=raw(r.aspect,r.aspect==='1.1.1'?0:4);r.status='verified';}
 const categories=M.schoolCategories(avBundle,true);assert.equal(categories.find(c=>c.name==='Sekolah').value,2000/21,'School average weights each of 21 aspects equally');assert.equal(categories.find(c=>c.name==='Sekolah').covered,21);assert.equal(M.schoolCategories(avBundle,true,['1.1.1']).find(c=>c.name==='Sekolah').covered,20);assert.equal(M.schoolCategories(avBundle,false,['1.1.1']).find(c=>c.name==='Sekolah').covered,21);
 console.log('PASS workbook refinement: dynamic action maxima, exact normalized percentages, zero vs blank, unit averages/validation, detailed evidence validation, equal aspect averages, coverage/pending exclusion, PdPc year/stage/status/roster aggregation, weighted contributions, admin-only notes, revision and audit.');
+{
+ const doc=fixture(),pgb=doc.members.find(m=>m.id==='reviewer');doc.teachers.find(t=>t.id===pgb.teacherId).position='GURU BESAR';
+ assert.equal(A.managementView(doc,pgb,2026).isPGB,true);const units=M.MANAGEMENT_UNITS.filter(u=>u.group==='1');doc.management={2026:Object.fromEntries(units.map(u=>[u.id,{...M.emptyManagementRecord(u.id,2026),status:'submitted',revision:1,assigneeId:'writer',reviewerId:pgb.id,data:{scores:Object.fromEntries(u.actions.map(a=>[a.id,4])),notes:'Evidens contoh',evidence:['https://example.test/evidence']}}]))};
+ const revisions=units.map(u=>({aspect:u.id,revision:1})),before=structuredClone(doc);
+ assert.throws(()=>A.managementCommand(doc,doc.members[0],{action:'verify-standard',year:2026,group:'1',revisions}),e=>e.status===403);assert.deepEqual(doc,before);
+ assert.throws(()=>A.managementCommand(doc,pgb,{action:'verify-standard',year:2026,group:'1',revisions:[]}),e=>e.status===409);assert.deepEqual(doc,before);
+ A.managementCommand(doc,pgb,{action:'verify-standard',year:2026,group:'1',revisions});assert.ok(A.managementView(doc,pgb,2026).records.filter(r=>r.aspect.startsWith('1.')).every(r=>r.status==='verified'));assert.deepEqual(doc.assessments,before.assessments);
+ console.log('PASS standard verification: linked PGB only, stale revisions, atomic group verification and preserved PdPc.');
+}

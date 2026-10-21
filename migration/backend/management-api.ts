@@ -1,5 +1,5 @@
 import {calculate,stages,type TeacherType} from './scoring.ts';
-import {admin,audit,fail,now,assignmentPeople,assignmentIdentity,assignedMember,assignedTo,eligibleScoreAssignee,type Row,type SchoolDoc} from './domain.ts';
+import {scoreEntry,isPGB,admin,audit,fail,now,assignmentPeople,assignmentIdentity,assignedMember,assignedTo,eligibleScoreAssignee,type Row,type SchoolDoc} from './domain.ts';
 import {MANAGEMENT_UNITS,emptyManagementRecord,cleanManagementData,managementIssues,validManagementUnit,validYear,defaultReportNotes,cleanReportNotes,mean,type ReportNotes,type SchoolReport,type PdpcSummary,type ManagementRecord,type ManagementBundle,type ManagementUnitId} from './management-model.ts';
 type Store=SchoolDoc&{management?:Record<string,Partial<Record<ManagementUnitId,ManagementRecord>>>;managementReports?:Record<string,ReportNotes>};
 function permissions(d:SchoolDoc,m:Row,r:ManagementRecord){const canAdmin=m.role==='admin',writer=assignedTo(d,r.assigneeId,m.id)||(r.pssIds??[]).some(id=>assignedTo(d,id,m.id)),reviewer=assignedTo(d,r.reviewerId,m.id);return {canAdmin,canRead:canAdmin||writer||reviewer,canEdit:(canAdmin||writer)&&['draft','returned'].includes(r.status),canReview:(canAdmin||reviewer)&&r.status==='submitted'&&!writer&&(r as unknown as Row).lastEditorId!==m.id};}
@@ -23,11 +23,21 @@ export function scoringReport(d:SchoolDoc,year:number):SchoolReport{
 export function managementView(d:SchoolDoc,m:Row,year:number):ManagementBundle{
  if(!d.members.some(x=>x.id===m.id&&x.active===1))fail('Akses akaun tidak aktif.',403);
  if(!validYear(year))fail('Pilih tahun antara 2020–2100.');
- return {year,records:MANAGEMENT_UNITS.map(a=>{const r=record(d,a.id,year),p=permissions(d,m,r);if(!p.canRead){r.data=emptyManagementRecord(a.id,year).data;r.feedback='';}delete r.lastMutationId;delete r.lastMutationActor;return {...r,...p};}),people:assignmentPeople(d),school:{code:d.school.code,name:d.school.name},sessionId:m.id,...(m.role==='admin'?{report:scoringReport(d,year)}:{})};
+ return {year,isPGB:isPGB(d,m),records:MANAGEMENT_UNITS.map(a=>{const r=record(d,a.id,year),p=permissions(d,m,r),hasEntry=scoreEntry(r.data);if(!p.canRead){r.data=emptyManagementRecord(a.id,year).data;r.feedback='';}delete r.lastMutationId;delete r.lastMutationActor;return {...r,...p,hasEntry};}),people:assignmentPeople(d),school:{code:d.school.code,name:d.school.name},sessionId:m.id,...(m.role==='admin'?{report:scoringReport(d,year)}:{})};
 }
 export function managementCommand(d:SchoolDoc,m:Row,b:Row):ManagementBundle{
  if(!d.members.some(x=>x.id===m.id&&x.active===1))fail('Akses akaun tidak aktif.',403);
  if(!validYear(b.year))fail('Pilih tahun antara 2020–2100.');
+ if(b.action==='verify-standard'){
+  if(!isPGB(d,m))fail('Hanya PGB yang dipautkan kepada senarai guru boleh mengesahkan standard.',403);
+  const units=MANAGEMENT_UNITS.filter(u=>u.group===b.group);if(!units.length)fail('Standard tidak sah.');
+  const copy=structuredClone(d),rows=units.map(u=>record(copy,u.id,b.year));
+  if(!Array.isArray(b.revisions)||b.revisions.length!==rows.length||rows.some(r=>!b.revisions.some((v:Row)=>v.aspect===r.aspect&&v.revision===r.revision)))fail('Rekod standard berubah. Muat semula dahulu.',409);
+  for(const r of rows){if(r.status==='verified')continue;if(r.status!=='submitted')fail('Semua borang perlu dihantar dahulu.',409);if(assignedTo(d,r.assigneeId,m.id)||(r.pssIds??[]).some(id=>assignedTo(d,id,m.id))||(r as unknown as Row).lastEditorId===m.id)fail('PGB tidak boleh mengesahkan pengisian sendiri.',403);
+   const issues=managementIssues(r.aspect,r.data);if(issues.length)fail(issues[0]);r.status='verified';r.verifiedAt=now();r.verifiedBy=m.id;r.verifiedName=m.displayName||m.username;r.feedback='';r.updatedAt=now();r.updatedBy=m.id;r.revision++;(copy as Store).management??={};(copy as Store).management![String(b.year)]??={};(copy as Store).management![String(b.year)][r.aspect]=r;
+  }
+  (d as Store).management=(copy as Store).management;audit(d,m,'management_verify_standard',b.group+':'+b.year,null,{aspects:rows.map(r=>r.aspect)});return managementView(d,m,b.year);
+ }
  if(b.action==='report-notes'){
   admin(m);const store=d as Store,old=store.managementReports?.[String(b.year)]??defaultReportNotes();
   if(!Number.isInteger(b.revision)||b.revision!==old.revision)fail('Catatan laporan telah berubah. Muat semula sebelum menyimpan.',409);

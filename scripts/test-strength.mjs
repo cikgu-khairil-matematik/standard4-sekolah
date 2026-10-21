@@ -61,3 +61,11 @@ assert.throws(()=>M.cleanStrengthData('A4',{...data,evidence:['javascript:alert(
 assert.throws(()=>M.cleanStrengthData('A4',{...data,evidence:['https://user:password@example.com']}));
 for(const names of Object.values(M.CATALOG)){assert.equal(new Set(names).size,names.length);assert.ok(names.every(n=>n===n.trim()));}
 console.log('PASS: nine aspects, atomic authorization, tenant-safe assignments, optimistic concurrency, idempotent drafts, submission/review/reopening, no self-verification, revocation, unchanged Standard 4, source formulas, blanks/zero, validation, catalog and evidence URLs.');
+// Reset is admin-only, revision-checked, audited and isolated to one year/module.
+{
+ const resetDoc=fixture();const boss=resetDoc.members.find(m=>m.role==='admin');const before=structuredClone(resetDoc);
+ assert.throws(()=>S.strengthCommand(resetDoc,resetDoc.members.find(m=>m.id!==boss.id),{action:'reset-all',year:2026,revisions:[]}),e=>e.status===403);assert.deepEqual(resetDoc,before);
+ const rows=S.strengthView(resetDoc,boss,2026).records;assert.throws(()=>S.strengthCommand(resetDoc,boss,{action:'reset-all',year:2026,revisions:[]}),e=>e.status===409);assert.deepEqual(resetDoc,before);
+ const result=S.strengthCommand(resetDoc,boss,{action:'reset-all',year:2026,revisions:rows.map(r=>({aspect:r.aspect,revision:r.revision}))});assert.ok(result.records.every(r=>r.status==='draft'&&r.revision===1&&r.verifiedAt===null));assert.deepEqual(resetDoc.assessments,before.assessments);assert.ok(resetDoc.audit.some(r=>r.action==='strength_reset_all'));
+ console.log('PASS reset: authorization, stale revisions, all nine records, audit and Standard 4 preservation.');
+}

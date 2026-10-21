@@ -33,6 +33,7 @@ jobs:
       - run: node scripts/test-drive-evidence.mjs
       - run: node scripts/test-achievement.mjs
       - run: node scripts/test-achievement-offline.mjs
+      - run: node scripts/test-progress.mjs
       - run: node scripts/test-assignment-roster.mjs
       - run: npm run build
       - uses: actions/configure-pages@v5

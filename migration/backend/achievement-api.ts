@@ -1,4 +1,4 @@
-import {admin,audit,fail,now,assignmentPeople,assignmentIdentity,assignedMember,assignedTo,eligibleScoreAssignee,type Row,type SchoolDoc} from './domain.ts';
+import {scoreEntry,admin,audit,fail,now,assignmentPeople,assignmentIdentity,assignedMember,assignedTo,eligibleScoreAssignee,type Row,type SchoolDoc} from './domain.ts';
 import {ACHIEVEMENT_ITEMS,emptyAchievementRecord,cleanAchievementData,achievementIssues,validAchievement,validAchievementYear,effectiveAchievementPSS,type AchievementRecord,type AchievementBundle} from './achievement-model.ts';
 import type {AchievementPSS} from './resources-model.ts';
 export type AchievementStore=SchoolDoc&{achievement?:Record<string,Record<string,AchievementRecord>>;resources?:{pss?:Record<string,{revision:number;rows:AchievementPSS[]}>}};
@@ -6,7 +6,7 @@ function record(d:SchoolDoc,aspect:string,year:number){const store=d as Achievem
 function permissions(d:SchoolDoc,m:Row,r:AchievementRecord){const canAdmin=m.role==='admin',writer=assignedTo(d,r.assigneeId,m.id)||(r.pssIds??[]).some(id=>assignedTo(d,id,m.id)),reviewer=assignedTo(d,r.reviewerId,m.id);return {canAdmin,canRead:canAdmin||writer||reviewer,canEdit:(canAdmin||writer)&&['draft','returned'].includes(r.status),canReview:(canAdmin||reviewer)&&r.status==='submitted'&&!writer&&(r as unknown as Row).lastEditorId!==m.id};}
 export function achievementView(d:SchoolDoc,m:Row,year:number):AchievementBundle{
  if(!d.members.some(x=>x.id===m.id&&x.active===1))fail('Akses akaun tidak aktif.',403);if(!validAchievementYear(year))fail('Tahun tidak sah.');
- return {year,records:ACHIEVEMENT_ITEMS.map(a=>{const r=record(d,a.id,year),p=permissions(d,m,r);if(!p.canRead){r.data=emptyAchievementRecord(a.id,year).data;r.feedback='';r.verifiedName=null;r.lastEditorId=null;}delete r.lastMutationId;delete r.lastMutationActor;return {...r,...p};}),people:assignmentPeople(d),school:{code:d.school.code,name:d.school.name},sessionId:m.id};
+ return {year,records:ACHIEVEMENT_ITEMS.map(a=>{const r=record(d,a.id,year),p=permissions(d,m,r),hasEntry=scoreEntry(r.data);if(!p.canRead){r.data=emptyAchievementRecord(a.id,year).data;r.feedback='';r.verifiedName=null;r.lastEditorId=null;}delete r.lastMutationId;delete r.lastMutationActor;return {...r,...p,hasEntry};}),people:assignmentPeople(d),school:{code:d.school.code,name:d.school.name},sessionId:m.id};
 }
 export function achievementCommand(d:SchoolDoc,m:Row,b:Row):AchievementBundle{
  if(!d.members.some(x=>x.id===m.id&&x.active===1))fail('Akses akaun tidak aktif.',403);

@@ -101,3 +101,7 @@ export async function schoolCommand(d:SchoolDoc,m:Row,b:Row){admin(m);
 }
 async function invite(d:SchoolDoc,m:Row,member:Row,action:string){const token=secret();d.invitations=d.invitations.filter(i=>i.memberId!==member.id);d.invitations.push({hash:await hash(token),memberId:member.id,expiresAt:new Date(Date.now()+604800000).toISOString(),consumedAt:null});audit(d,m,action,member.id,null,{username:member.username,teacherId:member.teacherId,role:member.role});return {username:member.username,schoolCode:d.school.code,invitation:token,expiresDays:7};}
 export function getSchool(d:SchoolDoc,m:Row){admin(m);return {members:d.members.map(m=>({id:m.id,username:m.username,teacherId:m.teacherId,displayName:m.displayName,role:m.role,active:m.active,hasAccount:!!m.authUserId})),events:[...d.audit].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,100)};}
+
+export const isPGB=(d:SchoolDoc,m:Row)=>d.members.some(x=>x.id===m.id&&x.active===1)&&/^(GURU BESAR|PENGETUA)(?:\s|$)/.test(String(own(d,m)?.position??'').trim().toUpperCase());
+
+export function scoreEntry(v:unknown):boolean{if(v==null||v==='')return false;if(typeof v==='number')return true;if(typeof v==='boolean')return v;if(typeof v==='string')return !!v.trim();if(Array.isArray(v))return v.some(scoreEntry);return typeof v==='object'&&Object.entries(v).some(([k,x])=>k==='applicable'?x===false:!['mode','name','id'].includes(k)&&scoreEntry(x));}

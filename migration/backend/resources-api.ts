@@ -1,20 +1,30 @@
 import {achievementCommand,achievementView,type AchievementStore} from './achievement-api.ts';
 import {effectiveAchievementPSS,emptyAchievementRecord} from './achievement-model.ts';
-import {admin,audit,fail,now,assignmentIdentity,assignedTo,eligibleScoreAssignee,type Row,type SchoolDoc} from './domain.ts';
+import {isPGB,admin,audit,fail,now,assignmentIdentity,assignedTo,eligibleScoreAssignee,type Row,type SchoolDoc} from './domain.ts';
 import {ASPECTS,validYear} from './strength-model.ts';
 import {MANAGEMENT_UNITS} from './management-model.ts';
 import {strengthCommand,strengthView} from './strength-api.ts';
 import {managementCommand,managementView} from './management-api.ts';
 import type {DriveSettings,AchievementPSS} from './resources-model.ts';
-type Resources={settings?:DriveSettings;folders?:Record<string,string>;counters?:Record<string,number>;reservations?:Row[];pss?:Record<string,{revision:number;rows:AchievementPSS[]}>};
+type Resources={pdpcConfirmations?:Record<string,{signature:string;by:string;at:string}>;lists?:Record<string,{revision:number;classes:string[];subjects:string[]}>;settings?:DriveSettings;folders?:Record<string,string>;counters?:Record<string,number>;reservations?:Row[];pss?:Record<string,{revision:number;rows:AchievementPSS[]}>};
 type Store=SchoolDoc&{resources?:Resources};
 const defaults=():DriveSettings=>({revision:0,folderUrl:'',clientId:'',apiKey:'',projectNumber:'',updatedAt:null});
 const str=(v:unknown,max=200)=>{if(typeof v!=='string'||v.length>max)fail('Teks tidak sah atau terlalu panjang.');return (v as string).trim();};
 export function folderId(value:string){if(!value)return '';let u:URL;try{u=new URL(value);}catch{fail('Gunakan pautan folder Google Drive yang lengkap.');}if(u!.protocol!=='https:'||u!.hostname!=='drive.google.com'||u!.username||u!.password)fail('Gunakan pautan folder Google Drive yang sah.');const id=u!.pathname.match(/\/folders\/([a-zA-Z0-9_-]{10,})/)?.[1];if(!id)fail('Pautan mesti menuju ke folder Google Drive.');return id!;}
 function active(d:SchoolDoc,m:Row){if(!d.members.some(p=>p.id===m.id&&p.active===1))fail('Akses akaun tidak aktif.',403);}
-export function resourcesView(d:SchoolDoc,m:Row,year:number){active(d,m);if(!validYear(year))fail('Tahun tidak sah.');const r=(d as Store).resources;return {settings:structuredClone(r?.settings??defaults()),pss: m.role==='admin'?structuredClone(r?.pss?.[String(year)]??{revision:0,rows:[]}):undefined,year};}
+function pdpcStatus(d:SchoolDoc,year:number){const rows=d.assessments.filter(a=>a.year===year&&d.teachers.some(t=>t.id===a.teacherId)),expected=d.teachers.length*3,signature=JSON.stringify(rows.map(a=>[a.id,a.revision,a.status]).sort((a,b)=>String(a[0]).localeCompare(String(b[0])))),complete=expected>0&&rows.length===expected&&rows.every(a=>a.status==='submitted'),confirmation=(d as Store).resources?.pdpcConfirmations?.[String(year)];return {status:complete&&confirmation?.signature===signature?'verified':complete?'submitted':rows.length?'draft':'empty',count:rows.filter(a=>a.status==='submitted').length,expected,signature};}
+export function resourcesView(d:SchoolDoc,m:Row,year:number){active(d,m);if(!validYear(year))fail('Tahun tidak sah.');const r=(d as Store).resources;return {isPGB:isPGB(d,m),standard4:pdpcStatus(d,year),lists:structuredClone(r?.lists?.[String(year)]??{revision:0,classes:[],subjects:[]}),settings:structuredClone(r?.settings??defaults()),pss: m.role==='admin'?structuredClone(r?.pss?.[String(year)]??{revision:0,rows:[]}):undefined,year};}
 export function resourcesCommand(d:SchoolDoc,m:Row,b:Row){
  active(d,m);if(!validYear(b.year))fail('Tahun tidak sah.');const store=d as Store;
+ if(b.action==='verify-standard4'){
+  if(!isPGB(d,m))fail('Hanya PGB boleh mengesahkan Standard 4.',403);const state=pdpcStatus(d,b.year);if(state.status!=='submitted')fail('Lengkapkan dan hantar semua penilaian sebelum pengesahan Standard 4.',409);if(b.signature!==state.signature)fail('Penilaian berubah. Muat semula dahulu.',409);
+  store.resources??={};store.resources.pdpcConfirmations??={};store.resources.pdpcConfirmations[String(b.year)]={signature:state.signature,by:m.id,at:now()};audit(d,m,'pdpc_verify_standard',String(b.year),null,{count:state.count});return resourcesView(d,m,b.year);
+ }
+ if(b.action==='lists'){
+  admin(m);const old=store.resources?.lists?.[String(b.year)]??{revision:0,classes:[],subjects:[]};if(b.revision!==old.revision)fail('Senarai telah berubah. Muat semula dahulu.',409);
+  const clean=(v:unknown)=>{if(!Array.isArray(v)||v.length>200)fail('Maksimum 200 pilihan.');const rows=(v as unknown[]).map(x=>str(x,200));if(rows.some(x=>!x)||new Set(rows).size!==rows.length)fail('Nama kosong atau berulang.');return rows;};
+  const next={revision:old.revision+1,classes:clean(b.classes),subjects:clean(b.subjects)};store.resources??={};store.resources.lists??={};store.resources.lists[String(b.year)]=next;audit(d,m,'school_lists',String(b.year),old,next);return resourcesView(d,m,b.year);
+ }
  if(b.action==='settings'){
   admin(m);const old=store.resources?.settings??defaults();if(b.revision!==old.revision)fail('Tetapan telah berubah. Muat semula dahulu.',409);
   const folderUrl=str(b.settings?.folderUrl??'',500),clientId=str(b.settings?.clientId??''),apiKey=str(b.settings?.apiKey??''),projectNumber=str(b.settings?.projectNumber??'',30);folderId(folderUrl);

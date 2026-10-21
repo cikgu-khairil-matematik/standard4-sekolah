@@ -1,13 +1,19 @@
-import {admin,audit,fail,now,assignmentPeople,assignedMember,assignedTo,eligibleScoreAssignee,type Row,type SchoolDoc} from './domain.ts';
+import {scoreEntry,admin,audit,fail,now,assignmentPeople,assignedMember,assignedTo,eligibleScoreAssignee,type Row,type SchoolDoc} from './domain.ts';
 import {ASPECTS,emptyStrengthRecord,cleanStrengthData,strengthIssues,validAspect,validYear,type StrengthRecord,type StrengthBundle,type AspectId} from './strength-model.ts';
 type Store=SchoolDoc&{strength?:Record<string,Partial<Record<AspectId,StrengthRecord>>>};
 function permissions(d:SchoolDoc,m:Row,r:StrengthRecord){const isAdmin=m.role==='admin',writer=assignedTo(d,r.assigneeId,m.id),reviewer=assignedTo(d,r.reviewerId,m.id);return {canRead:isAdmin||writer||reviewer,canEdit:(isAdmin||writer)&&['draft','returned'].includes(r.status),canReview:(isAdmin||reviewer)&&r.status==='submitted'&&!writer&&(r as unknown as Row).lastEditorId!==m.id};}
 function record(d:Store,aspect:AspectId,year:number):StrengthRecord{return structuredClone(d.strength?.[String(year)]?.[aspect]??emptyStrengthRecord(aspect,year));}
 export function strengthView(d:SchoolDoc,m:Row,year:number):StrengthBundle{
  if(!validYear(year))fail('Pilih tahun antara 2020–2100.');
- return {year,records:ASPECTS.map(a=>{const r=record(d,a.id,year),p=permissions(d,m,r);if(!p.canRead){r.data=emptyStrengthRecord(a.id,year).data;r.feedback='';}delete r.lastMutationId;delete r.lastMutationActor;return {...r,...p};}),people:assignmentPeople(d),school:{code:d.school.code,name:d.school.name},sessionId:m.id};
+ return {year,records:ASPECTS.map(a=>{const r=record(d,a.id,year),p=permissions(d,m,r),hasEntry=scoreEntry(r.data);if(!p.canRead){r.data=emptyStrengthRecord(a.id,year).data;r.feedback='';}delete r.lastMutationId;delete r.lastMutationActor;return {...r,...p,hasEntry};}),people:assignmentPeople(d),school:{code:d.school.code,name:d.school.name},sessionId:m.id};
 }
 export function strengthCommand(d:SchoolDoc,m:Row,b:Row):StrengthBundle{
+ if(b.action==='reset-all'){
+  admin(m);if(!validYear(b.year))fail('Tahun tidak sah.');const store=d as Store,rows=ASPECTS.map(a=>record(store,a.id,b.year));
+  if(!Array.isArray(b.revisions)||b.revisions.length!==ASPECTS.length||rows.some(r=>!b.revisions.some((v:Row)=>v.aspect===r.aspect&&v.revision===r.revision)))fail('Rekod telah berubah. Muat semula sebelum reset.',409);
+  store.strength??={};store.strength[String(b.year)]??={};for(const old of rows){const r={...emptyStrengthRecord(old.aspect,b.year),assigneeId:old.assigneeId,reviewerId:old.reviewerId,revision:old.revision+1,updatedAt:now(),updatedBy:m.id};store.strength[String(b.year)][r.aspect]=r;}
+  audit(d,m,'strength_reset_all',String(b.year),rows,{aspects:ASPECTS.map(a=>a.id)});return strengthView(d,m,b.year);
+ }
  if(!validYear(b.year))fail('Pilih tahun antara 2020–2100.');if(!validAspect(b.aspect))fail('Aspek tidak sah.');
  const store=d as Store,year=b.year,aspect=b.aspect as AspectId,r=record(store,aspect,year),before=structuredClone(r),p=permissions(d,m,r);
  if(b.action==='assign')admin(m);else if(b.action==='save'||b.action==='submit'){if(!(m.role==='admin'||assignedTo(d,r.assigneeId,m.id)))fail('Hanya pengisi yang ditugaskan atau pentadbir boleh mengisi aspek ini.',403);}else if(['verify','return','reopen'].includes(b.action)){if(!(m.role==='admin'||r.reviewerId===m.id&&d.members.some(x=>x.id===m.id&&x.active===1)))fail('Hanya penyemak yang ditugaskan atau pentadbir boleh menyemak.',403);}else fail('Tindakan modul tidak sah.');
