@@ -1,23 +1,23 @@
-import {admin,audit,fail,now,type Row,type SchoolDoc} from './domain.ts';
+import {admin,audit,fail,now,assignmentPeople,assignedMember,assignedTo,eligibleScoreAssignee,type Row,type SchoolDoc} from './domain.ts';
 import {ASPECTS,emptyStrengthRecord,cleanStrengthData,strengthIssues,validAspect,validYear,type StrengthRecord,type StrengthBundle,type AspectId} from './strength-model.ts';
 type Store=SchoolDoc&{strength?:Record<string,Partial<Record<AspectId,StrengthRecord>>>};
-function permissions(d:SchoolDoc,m:Row,r:StrengthRecord){const active=(id:string|null)=>!!id&&d.members.some(x=>x.id===id&&x.active===1);const isAdmin=m.role==='admin',canRead=isAdmin||active(r.assigneeId)&&r.assigneeId===m.id||active(r.reviewerId)&&r.reviewerId===m.id;return {canRead,canEdit:(isAdmin||active(r.assigneeId)&&r.assigneeId===m.id)&&['draft','returned'].includes(r.status),canReview:(isAdmin||active(r.reviewerId)&&r.reviewerId===m.id)&&r.status==='submitted'&&r.assigneeId!==m.id&&(r as unknown as Row).lastEditorId!==m.id};}
+function permissions(d:SchoolDoc,m:Row,r:StrengthRecord){const isAdmin=m.role==='admin',writer=assignedTo(d,r.assigneeId,m.id),reviewer=assignedTo(d,r.reviewerId,m.id);return {canRead:isAdmin||writer||reviewer,canEdit:(isAdmin||writer)&&['draft','returned'].includes(r.status),canReview:(isAdmin||reviewer)&&r.status==='submitted'&&!writer&&(r as unknown as Row).lastEditorId!==m.id};}
 function record(d:Store,aspect:AspectId,year:number):StrengthRecord{return structuredClone(d.strength?.[String(year)]?.[aspect]??emptyStrengthRecord(aspect,year));}
 export function strengthView(d:SchoolDoc,m:Row,year:number):StrengthBundle{
  if(!validYear(year))fail('Pilih tahun antara 2020–2100.');
- return {year,records:ASPECTS.map(a=>{const r=record(d,a.id,year),p=permissions(d,m,r);if(!p.canRead){r.data=emptyStrengthRecord(a.id,year).data;r.feedback='';}delete r.lastMutationId;delete r.lastMutationActor;return {...r,...p};}),people:d.members.filter(x=>x.active===1).map(x=>({id:x.id,name:x.displayName||x.username})),school:{code:d.school.code,name:d.school.name},sessionId:m.id};
+ return {year,records:ASPECTS.map(a=>{const r=record(d,a.id,year),p=permissions(d,m,r);if(!p.canRead){r.data=emptyStrengthRecord(a.id,year).data;r.feedback='';}delete r.lastMutationId;delete r.lastMutationActor;return {...r,...p};}),people:assignmentPeople(d),school:{code:d.school.code,name:d.school.name},sessionId:m.id};
 }
 export function strengthCommand(d:SchoolDoc,m:Row,b:Row):StrengthBundle{
  if(!validYear(b.year))fail('Pilih tahun antara 2020–2100.');if(!validAspect(b.aspect))fail('Aspek tidak sah.');
  const store=d as Store,year=b.year,aspect=b.aspect as AspectId,r=record(store,aspect,year),before=structuredClone(r),p=permissions(d,m,r);
- if(b.action==='assign')admin(m);else if(b.action==='save'||b.action==='submit'){if(!(m.role==='admin'||r.assigneeId===m.id&&d.members.some(x=>x.id===m.id&&x.active===1)))fail('Hanya pengisi yang ditugaskan atau pentadbir boleh mengisi aspek ini.',403);}else if(['verify','return','reopen'].includes(b.action)){if(!(m.role==='admin'||r.reviewerId===m.id&&d.members.some(x=>x.id===m.id&&x.active===1)))fail('Hanya penyemak yang ditugaskan atau pentadbir boleh menyemak.',403);}else fail('Tindakan modul tidak sah.');
+ if(b.action==='assign')admin(m);else if(b.action==='save'||b.action==='submit'){if(!(m.role==='admin'||assignedTo(d,r.assigneeId,m.id)))fail('Hanya pengisi yang ditugaskan atau pentadbir boleh mengisi aspek ini.',403);}else if(['verify','return','reopen'].includes(b.action)){if(!(m.role==='admin'||r.reviewerId===m.id&&d.members.some(x=>x.id===m.id&&x.active===1)))fail('Hanya penyemak yang ditugaskan atau pentadbir boleh menyemak.',403);}else fail('Tindakan modul tidak sah.');
  if(b.action==='save'&&typeof b.mutationId==='string'&&r.lastMutationId===b.mutationId&&r.lastMutationActor===m.id)return strengthView(d,m,year);
  if(!Number.isInteger(b.revision)||b.revision!==r.revision)fail('Rekod telah berubah. Muat semula dan semak perubahan sebelum menyimpan.',409,{record:{...r,...p}});
  if(b.action==='assign'){
   if(['submitted','verified'].includes(r.status))fail('Buka semula borang sebelum menukar penugasan.',409);
   const eligible=(id:unknown)=>id===null||typeof id==='string'&&d.members.some(x=>x.id===id&&x.active===1);
-  if(!eligible(b.assigneeId)||!eligible(b.reviewerId))fail('Pilih akaun aktif dalam sekolah ini.',400);
-  if(b.assigneeId&&b.assigneeId===b.reviewerId)fail('Pengisi dan penyemak mesti orang yang berbeza.');
+  if(b.assigneeId!==null&&!eligibleScoreAssignee(d,b.assigneeId,true))fail('Pilih pengisi daripada Guru Besar / Penolong Kanan dalam senarai guru sekolah.');if(!eligible(b.reviewerId))fail('Pilih penyemak daripada akaun aktif sekolah.',400);
+  if(b.assigneeId&&assignedTo(d,b.assigneeId,b.reviewerId))fail('Pengisi dan penyemak mesti orang yang berbeza.');
   r.assigneeId=b.assigneeId;r.reviewerId=b.reviewerId;
  }else if(b.action==='save'){
   if(!p.canEdit)fail('Borang telah dihantar atau disahkan. Minta penyemak membuka semula.',409);
@@ -26,7 +26,7 @@ export function strengthCommand(d:SchoolDoc,m:Row,b:Row):StrengthBundle{
   r.status='draft';r.feedback='';r.lastMutationId=b.mutationId;r.lastMutationActor=m.id;(r as unknown as Row).lastEditorId=m.id;
  }else if(b.action==='submit'){
   if(!p.canEdit)fail('Borang tidak berada dalam status draf.',409);
-  if(!r.assigneeId||!r.reviewerId||!d.members.some(x=>x.id===r.assigneeId&&x.active===1)||!d.members.some(x=>x.id===r.reviewerId&&x.active===1))fail('Pentadbir perlu menetapkan pengisi dan penyemak aktif dahulu.');
+  if(!r.assigneeId||!r.reviewerId||!assignedMember(d,r.assigneeId)||!d.members.some(x=>x.id===r.reviewerId&&x.active===1))fail('Pentadbir perlu menetapkan pengisi dan penyemak aktif dahulu.');
   const issues=strengthIssues(aspect,r.data);if(issues.length)fail(issues[0],400,{issues});
   r.status='submitted';r.submittedAt=now();r.feedback='';r.verifiedAt=null;r.verifiedBy=null;r.verifiedName=null;
  }else if(b.action==='verify'){
