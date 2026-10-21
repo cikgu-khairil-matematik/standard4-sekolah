@@ -44,7 +44,9 @@ html[data-skas-text] body :is(.skas-shell,.app-shell) :is(.skas-field-guide,.ska
 html[data-skas-text] body :is(.skas-shell,.app-shell) :is(.skas-heading p,.page-heading p,.skas-editor-heading p,.skas-assigned span,.skas-report p,.skas-section-heading p){color:#4c6556}
 html[data-skas-text] body :is(.skas-shell,.app-shell,.auth-page,.modal-backdrop) input[type=number]{font-size:var(--skas-number)!important;line-height:1.5;min-height:44px}
 html[data-skas-text] body :is(.skas-shell,.app-shell,.auth-page,.modal-backdrop,.connection-bar) :is(button,input:not([type=checkbox]):not([type=radio]),select){min-height:44px}
-html[data-skas-text] body :is(.skas-shell,.app-shell,.modal-backdrop) button{white-space:normal;overflow-wrap:anywhere}
+html[data-skas-text] body :is(.skas-shell,.app-shell,.modal-backdrop) button{white-space:normal;overflow-wrap:break-word}
+/* Navigation scrolls within its row; readable text must not shrink into letter columns. */
+html[data-skas-text] body .skas-shell .skas-mobile-nav button{white-space:nowrap;overflow-wrap:normal;word-break:normal}
 html[data-skas-text] body :is(.skas-shell,.app-shell) :is(.skas-status,.skas-entry-count,.pilot){white-space:normal}
 html[data-skas-text] body :is(.skas-shell,.app-shell) :is(.skas-topbar,.topbar){height:auto;min-height:75px;padding-top:10px;padding-bottom:10px;flex-wrap:wrap}
 html[data-skas-text] body :is(.skas-shell,.app-shell) :is(.skas-task-title,.assignment-row>div){min-width:0}
