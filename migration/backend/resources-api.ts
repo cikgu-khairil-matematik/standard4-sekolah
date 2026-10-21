@@ -1,6 +1,6 @@
 import {achievementCommand,achievementView,type AchievementStore} from './achievement-api.ts';
 import {effectiveAchievementPSS,emptyAchievementRecord} from './achievement-model.ts';
-import {admin,audit,fail,now,type Row,type SchoolDoc} from './domain.ts';
+import {admin,audit,fail,now,assignmentIdentity,assignedTo,eligibleScoreAssignee,type Row,type SchoolDoc} from './domain.ts';
 import {ASPECTS,validYear} from './strength-model.ts';
 import {MANAGEMENT_UNITS} from './management-model.ts';
 import {strengthCommand,strengthView} from './strength-api.ts';
@@ -31,9 +31,9 @@ export function resourcesCommand(d:SchoolDoc,m:Row,b:Row){
  }
  if(b.action==='pss'){
   admin(m);const old=store.resources?.pss?.[String(b.year)]??{revision:0,rows:[]};if(b.revision!==old.revision)fail('Senarai PSS telah berubah. Muat semula dahulu.',409);if(!Array.isArray(b.rows)||b.rows.length>100)fail('Maksimum 100 penugasan PSS.');const ids=new Set(),codes=new Set();
-  const rows=b.rows.map((r:Row)=>{const id=str(r.id,80),standard=str(r.standard,40),title=str(r.title,200);if(!id||ids.has(id)||codes.has(standard)||!/^5(?:\.\d{1,2}){0,3}$/.test(standard)||!title)fail('Lengkapkan kod Standard 5, tajuk dan elakkan pendua.');ids.add(id);codes.add(standard);if(!Array.isArray(r.memberIds)||r.memberIds.length>50||new Set(r.memberIds).size!==r.memberIds.length||r.memberIds.some((id:unknown)=>!d.members.some(p=>p.id===id&&p.active===1)))fail('Pilih PSS daripada akaun sekolah yang aktif.');return {id,standard,title,memberIds:r.memberIds};});
+  const rows=b.rows.map((r:Row)=>{const id=str(r.id,80),standard=str(r.standard,40),title=str(r.title,200);if(!id||ids.has(id)||codes.has(standard)||!/^5(?:\.\d{1,2}){0,3}$/.test(standard)||!title)fail('Lengkapkan kod Standard 5, tajuk dan elakkan pendua.');ids.add(id);codes.add(standard);if(!Array.isArray(r.memberIds)||r.memberIds.length>50||new Set(r.memberIds.map((id:string)=>typeof id==='string'?assignmentIdentity(d,id):id)).size!==r.memberIds.length||r.memberIds.some((id:unknown)=>!eligibleScoreAssignee(d,id)))fail('Pilih PSS daripada senarai guru sekolah.');return {id,standard,title,memberIds:r.memberIds};});
   const changed=achievementView(d,m,b.year).records.filter(r=>JSON.stringify([...r.pssIds].sort())!==JSON.stringify(effectiveAchievementPSS(rows,r.aspect).sort()));
-  for(const r of changed){if(['submitted','verified'].includes(r.status))fail('Buka semula borang '+r.aspect+' sebelum menukar PSS.',409);if(effectiveAchievementPSS(rows,r.aspect).includes(r.reviewerId??''))fail('PSS dan penyemak '+r.aspect+' mesti berbeza.');}
+  for(const r of changed){if(['submitted','verified'].includes(r.status))fail('Buka semula borang '+r.aspect+' sebelum menukar PSS.',409);if(effectiveAchievementPSS(rows,r.aspect).some(id=>assignedTo(d,id,r.reviewerId)))fail('PSS dan penyemak '+r.aspect+' mesti berbeza.');}
   for(const r of changed){const a=d as AchievementStore;a.achievement??={};a.achievement[String(b.year)]??={};const oldRecord=a.achievement[String(b.year)][r.aspect]??emptyAchievementRecord(r.aspect,b.year);a.achievement[String(b.year)][r.aspect]={...oldRecord,revision:oldRecord.revision+1,updatedAt:now(),updatedBy:m.id};}
   store.resources??={};store.resources.pss??={};store.resources.pss[String(b.year)]={revision:old.revision+1,rows};audit(d,m,'pss_achievement',String(b.year),old,{revision:old.revision+1,rows});return resourcesView(d,m,b.year);
  }

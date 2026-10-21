@@ -14,6 +14,27 @@ export function actor(d:SchoolDoc,uid:string,sidHash:string){const m=d.members.f
 export function session(d:SchoolDoc,m:Row){return {memberId:m.id,schoolId:d.school.id,schoolCode:d.school.code,schoolName:d.school.name,username:m.username,displayName:m.displayName,isAdmin:m.role==='admin',teacherId:m.teacherId,legacyOwner:false};}
 export const admin=(m:Row)=>{if(m.role!=='admin')fail('Tindakan ini hanya untuk pentadbir sekolah.',403);};
 export const own=(d:SchoolDoc,m:Row)=>d.teachers.find(t=>t.id===m.teacherId);
+// Teacher references allow planning before account activation. Access is resolved
+// from the current account-to-teacher link, never from a matching display name.
+export const schoolLeader=(position:unknown)=>typeof position==='string'&&/^(GURU BESAR|PENGETUA|PK(?:\s|$)|GPK(?:\s|$)|(?:GURU )?PENOLONG KANAN(?:\s|$))/.test(position.trim().toUpperCase().replace(/\s+/g,' '));
+export function assignedMember(d:SchoolDoc,id:unknown):Row|undefined{
+ if(typeof id!=='string')return undefined;
+ if(!id.startsWith('teacher:'))return d.members.find(m=>m.id===id&&m.active===1);
+ const teacherId=id.slice(8);if(!d.teachers.some(t=>t.id===teacherId))return undefined;
+ const matches=d.members.filter(m=>m.teacherId===teacherId&&m.active===1);return matches.length===1?matches[0]:undefined;
+}
+export const assignmentIdentity=(d:SchoolDoc,id:string)=>id.startsWith('teacher:')?id:assignedMember(d,id)?.teacherId?'teacher:'+assignedMember(d,id)!.teacherId:id;
+export const assignedTo=(d:SchoolDoc,id:unknown,memberId:unknown)=>!!memberId&&assignedMember(d,id)?.id===memberId;
+export function eligibleScoreAssignee(d:SchoolDoc,id:unknown,leadersOnly=false){
+ if(typeof id!=='string')return false;
+ const member=assignedMember(d,id),teacher=id.startsWith('teacher:')?d.teachers.find(t=>t.id===id.slice(8)):d.teachers.find(t=>t.id===member?.teacherId);
+ // Keep existing account-only schools compatible until their teacher roster is prepared.
+ return teacher?(!leadersOnly||schoolLeader(teacher.position)):!d.teachers.length&&!!member;
+}
+export function assignmentPeople(d:SchoolDoc){return [
+ ...d.teachers.filter(t=>typeof t.name==='string'&&t.name.trim()).map(t=>({id:'teacher:'+t.id,name:t.name,kind:'teacher' as const,position:t.position||'',schoolLeader:schoolLeader(t.position),linked:!!assignedMember(d,'teacher:'+t.id),teacherId:t.id})).sort((a,b)=>a.name.localeCompare(b.name,'ms')),
+ ...d.members.filter(m=>m.active===1).map(m=>({id:m.id,name:m.displayName||m.username,kind:'account' as const,position:'',schoolLeader:false,linked:true,teacherId:m.teacherId??null}))
+ ];}
 export function mayView(d:SchoolDoc,m:Row,t:Row){const o=own(d,m);return m.role==='admin'||t.id===m.teacherId||!!o&&(normalized(t.pp1)===normalized(o.name)||normalized(t.pp2)===normalized(o.name));}
 export function mayWrite(d:SchoolDoc,m:Row,t:Row,stage:string){if(m.role==='admin')return true;if(stage==='kendiri')return t.id===m.teacherId;const o=own(d,m);return !!o&&normalized(stage==='pertama'?t.pp1:t.pp2)===normalized(o.name);}
 export function audit(d:SchoolDoc,m:Row,action:string,id:string,before:unknown,after:unknown){d.audit.push({id:crypto.randomUUID(),schoolId:d.school.id,actorId:m.id,action,entityId:id,before:before==null?null:JSON.stringify(before),after:after==null?null:JSON.stringify(after),createdAt:now()});}
