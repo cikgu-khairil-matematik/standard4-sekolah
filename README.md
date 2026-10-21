@@ -134,3 +134,12 @@ Draf boleh tidak lengkap; sekurang-kurangnya satu URL evidens sah diwajibkan seb
 Satu menu **Tetapan Tugas & Pengesahan** mengumpulkan senarai menunggu semakan, tugasan Kekuatan Kami, Pengurusan Kami, Pencapaian Kami dan senarai PSS pentadbir. Modul pengisian menyediakan pautan ke pusat pengesahan; butang sah/pulang/buka semula berada dalam konteks pusat. Tetapan folder evidens berasingan daripada PSS. Pengesahan borang kekal satu demi satu selepas semakan evidens.
 
 Tulisan skrin menggunakan asas 16px, panduan 15px, maklumat tambahan 14px dan input angka 18px. Pilihan **Saiz tulisan: Biasa / Besar** menambah skala 1.125 dan disimpan per pelayar dalam `skas-text-size-v1`. Jika storan pelayar ditolak/penuh, pilihan sesi masih berfungsi dan notis dipaparkan. Tiada data sekolah atau rahsia disimpan dalam pilihan tulisan. Butang/input sekurang-kurangnya 44px tinggi; tajuk panjang boleh membalut. Gaya cetakan menggunakan aturan cetakan sedia ada.
+
+
+## Pilihan nama pengisi skor
+
+Dropdown PSS Pengurusan Kami dan Pencapaian Kami menggunakan senarai guru sekolah, manakala pengisi Kekuatan Kami ditapis kepada jawatan Guru Besar/Pengetua/Penolong Kanan. Peranan pentadbir aplikasi tidak secara automatik menjadikan seseorang pentadbir sekolah dalam senarai ini. Nama dan jawatan datang daripada dokumen sekolah peribadi, bukan senarai nama dalam kod awam. AKP tidak diimport ke senarai guru.
+
+Penugasan baharu menggunakan rujukan `teacher:<id>` yang stabil. Nama boleh ditugaskan sebelum akaun diaktifkan; akses mengisi memerlukan akaun aktif yang dipautkan kepada ID guru itu. Nama paparan yang sama tidak memberikan akses. Pautan akaun yang berganda gagal tertutup. ID ahli sedia ada masih disokong; pilihan lama dipaparkan dan boleh dipilih semula sebagai rujukan guru. Penyemak kekal menggunakan akaun aktif dan mesti berlainan daripada setiap pengisi/PSS, termasuk apabila ID ahli dan rujukan guru merujuk orang yang sama. Semakan ini dibuat dalam pelayan, termasuk penugasan serentak dan daftar PSS. Tiada rekod guru, PP1/PP2, markah atau penugasan lama ditukar secara automatik. Sekolah perlu menyediakan senarai guru terlebih dahulu untuk pilihan nama penuh.
+
+Ujian tambahan `node scripts/test-assignment-roster.mjs` meliputi sumber guru/pentadbir, perancangan sebelum aktivasi, pemautan ID, penyamaran nama, pengasingan sekolah, alias pendua, pengesahan bebas, pembatalan akses dan penugasan kelompok atomik.
