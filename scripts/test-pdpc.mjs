@@ -7,7 +7,7 @@ const call=(id,b)=>D.dataCommand(d,d.members.find(m=>m.id===id),b),denied=(id,b,
 const assign={action:'pdpc-assignments',year:2026,revision:0,rows:[{teacherId:'t',observerId:'teacher:o',reviewerId:'teacher:r'}]};
 denied('mt',assign,403);denied('a',{...assign,revision:9},409);denied('a',{...assign,rows:[{teacherId:'t',observerId:'teacher:t',reviewerId:'teacher:r'}]},400);denied('a',{...assign,rows:[{teacherId:'t',observerId:'teacher:o',reviewerId:'teacher:o'}]},400);call('a',assign);
 const assessment={id:'',teacherId:'t',year:2026,stage:'pertama',epoch:'epoch-test',status:'draft',revision:0,mutationId:'aaaaaaaa-bbbb-cccc-1111',scores:Array(38).fill(4),evaluator:'Pencerap',date:'2026-10-21',subject:'Matematik',classroom:'4 Contoh',notes:'',evidence:['https://example.test/pdpc-proof']};
-denied('mr',{action:'save',assessment},403);denied('mo',{action:'save',assessment:{...assessment,epoch:'old'}},409);denied('mo',{action:'save',assessment:{...assessment,stage:'kedua'}},403);denied('mo',{action:'save',assessment:{...assessment,year:2025}},403);
+denied('mr',{action:'save',assessment},403);denied('mo',{action:'save',assessment:{...assessment,epoch:'old'}},409);denied('mo',{action:'save',assessment:{...assessment,stage:'foreign'}},400);denied('mo',{action:'save',assessment:{...assessment,year:2025}},403);
 denied('mo',{action:'save',assessment:{...assessment,evidence:['javascript:alert(1)']}},400);
 denied('mo',{action:'save',assessment:{...assessment,status:'submitted'}},400);
 let result=call('mo',{action:'save',assessment});assert.deepEqual(result.assessment.evidence,assessment.evidence);assert.equal(result.assessment.total,'100.00');assert.equal(result.assessment.epoch,'epoch-test');
@@ -16,7 +16,31 @@ denied('mo',{action:'save',assessment:{...assessment,revision:1,status:'submitte
 result=call('mo',{action:'save',assessment:{...assessment,revision:1,mutationId:'aaaaaaaa-bbbb-cccc-2222',status:'submitted'}});const id=result.assessment.id;
 denied('mo',{action:'pdpc-review',id,revision:2,decision:'verify'},403);denied('mr',{action:'pdpc-review',id,revision:1,decision:'verify'},409);call('mr',{action:'pdpc-review',id,revision:2,decision:'verify'});assert.equal(d.assessments[0].status,'verified');denied('mo',{action:'save',assessment:{...assessment,revision:3,mutationId:'aaaaaaaa-bbbb-cccc-3333'}},409);
 call('mr',{action:'pdpc-review',id,revision:3,decision:'reopen',feedback:'Betulkan maklumat kelas'});assert.equal(d.assessments[0].status,'draft');assert.equal(d.assessments[0].verifiedAt,null);
-assert.equal(D.getData(d,d.members.find(m=>m.id==='mo')).teachers.some(t=>t.id==='t'),true);d.pdpc.assignments['2026']=[];assert.equal(D.mayWrite(d,d.members.find(m=>m.id==='mo'),d.teachers[0],'pertama',2026),false);assert.equal(D.mayWrite(d,d.members.find(m=>m.id==='mt'),d.teachers[0],'kendiri',2026),true);
+const firstBefore=structuredClone(d.assessments[0]);
+const second={...assessment,stage:'kedua',scores:Array(38).fill(0),evaluator:'Forged reviewer',evidence:['https://example.test/second-proof'],mutationId:'bbbbbbbb-bbbb-cccc-1111'};
+for(const actor of ['a','mt','mr'])denied(actor,{action:'save',assessment:second},403);
+denied('mo',{action:'save',assessment:{...second,epoch:'old'}},409);
+const secondDraft=call('mo',{action:'save',assessment:second}).assessment;assert.equal(secondDraft.total,'0.00');assert.equal(secondDraft.evaluator,'Pencerap','Both observations use the same observer identity');assert.notEqual(secondDraft.id,firstBefore.id);assert.deepEqual(d.assessments.find(a=>a.id===firstBefore.id),firstBefore,'Second observation must not overwrite first');
+denied('mo',{action:'save',assessment:{...second,revision:1,status:'submitted',mutationId:'bbbbbbbb-bbbb-cccc-2221',evidence:[]}},400);
+const secondSubmitted=call('mo',{action:'save',assessment:{...second,revision:1,status:'submitted',mutationId:'bbbbbbbb-bbbb-cccc-2222'}}).assessment;
+denied('mo',{action:'pdpc-review',id:secondSubmitted.id,revision:2,decision:'verify'},403);
+call('mr',{action:'pdpc-review',id:secondSubmitted.id,revision:2,decision:'verify'});assert.equal(d.assessments.find(a=>a.id===secondSubmitted.id).status,'verified');assert.deepEqual(d.assessments.find(a=>a.id===firstBefore.id),firstBefore);
+const self={...assessment,stage:'kendiri',evidence:['https://example.test/self-proof'],mutationId:'cccccccc-bbbb-cccc-1111'};call('mt',{action:'save',assessment:self});call('mt',{action:'save',assessment:{...self,revision:1,status:'submitted',mutationId:'cccccccc-bbbb-cccc-2222'}});assert.equal(new Set(d.assessments.map(a=>a.id)).size,3);
+assert.equal(D.getData(d,d.members.find(m=>m.id==='mo')).teachers.some(t=>t.id==='t'),true);d.pdpc.assignments['2026']=[];assert.equal(D.mayWrite(d,d.members.find(m=>m.id==='mo'),d.teachers[0],'pertama',2026),false);assert.equal(D.mayWrite(d,d.members.find(m=>m.id==='mo'),d.teachers[0],'kedua',2026),false);assert.equal(D.mayWrite(d,d.members.find(m=>m.id==='mt'),d.teachers[0],'kendiri',2026),true);
 console.log('PASS PdPc v2: leader-only observer, distinct reviewer, stable IDs, year isolation, stale/reset epoch rejection, zero-safe scoring, submit/verify/reopen, independent review and immediate revocation.');
 
 console.log('PASS Standard 4 evidence: reject missing or newly added unsaved links at submission; allow evidence saved in a prior draft; invalid links leave records unchanged.');
+
+console.log('PASS three Standard 4 sessions: same assigned observer for both rounds, independent records/scores/evidence/statuses, self assessment, independent reviewer, epoch, year, saved evidence and revocation.');
+
+{
+ const {C,V}=await import('./achievement-fixtures.mjs'),doc=structuredClone(d);doc.assessments=[];doc.pdpc.assignments[2026]=assign.rows;
+ const observer=doc.members.find(m=>m.id==='mo'),session={...D.session(doc,observer),username:'fixture-observer',displayName:'Fixture Observer'};
+ let connected=true,encrypted;
+ const transport=async(path,body)=>{if(!connected)throw new C.RequestError('Offline fixture',0);if(path==='/api/session')return {session};if(path==='/api/data'){if(!body)return {...D.getData(doc,observer),session};try{return D.dataCommand(doc,observer,body);}catch(e){throw new C.RequestError(e.message,e.status,e.details);}}throw Error('Unexpected transport');};
+ const engine=new C.OfflineEngine(session,()=>connected,transport,async record=>{encrypted=record;});await engine.load();const password='fictional-observer-password';engine.meta=V.vaultMeta(session);engine.key=await V.deriveVaultKey(password,engine.meta.salt);connected=false;
+ for(const stage of ['pertama','kedua'])await engine.call({action:'save',assessment:{...assessment,id:'',stage,scores:Array(38).fill(stage==='pertama'?4:0),notes:'Private fixture '+stage}});
+ assert.equal(engine.state().pending.length,2);assert.equal(new Set(engine.state().pending.map(p=>p.assessment.id)).size,2);assert.ok(!JSON.stringify(encrypted).includes('Private fixture'));
+ const recovered=new C.OfflineEngine(session,()=>connected,transport,async record=>{encrypted=record;});await recovered.unlock(encrypted,password);assert.deepEqual(recovered.state().pending.map(p=>p.assessment.stage).sort(),['kedua','pertama']);connected=true;await recovered.sync();assert.equal(recovered.state().pending.length,0);assert.equal(doc.assessments.length,2);assert.equal(doc.assessments.find(a=>a.stage==='pertama').total,'100.00');assert.equal(doc.assessments.find(a=>a.stage==='kedua').total,'0.00');
+ console.log('PASS offline observation rounds: separate encrypted drafts, recovery and sync preserve both records and zero scores.');
+}
