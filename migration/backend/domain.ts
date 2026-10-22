@@ -1,6 +1,6 @@
 import {calculate,normalized,stages,type Assessment,type TeacherType} from './scoring.ts';
 export type Row=Record<string,any>;
-export type SchoolDoc={school:Row;teachers:Row[];assessments:Row[];members:Row[];invitations:Row[];imports:Row[];audit:Row[];sessions:Row[];pdpc?:{version:number;epoch:string;revision:number;assignments:Record<string,Row[]>;resetAt?:string}};
+export type SchoolDoc={school:Row;staff?:Row[];teachers:Row[];assessments:Row[];members:Row[];invitations:Row[];imports:Row[];audit:Row[];sessions:Row[];pdpc?:{version:number;epoch:string;revision:number;assignments:Record<string,Row[]>;resetAt?:string}};
 export class ApiError extends Error {constructor(message:string,public status=400,public details:Row={}){super(message);}}
 export function fail(s:string,status=400,details:Row={}):never{throw new ApiError(s,status,details);}
 export const now=()=>new Date().toISOString();
@@ -19,11 +19,12 @@ export const own=(d:SchoolDoc,m:Row)=>d.teachers.find(t=>t.id===m.teacherId);
 export const schoolLeader=(position:unknown)=>typeof position==='string'&&/^(GURU BESAR|PENGETUA|PK(?:\s|$)|GPK(?:\s|$)|(?:GURU )?PENOLONG KANAN(?:\s|$))/.test(position.trim().toUpperCase().replace(/\s+/g,' '));
 export function assignedMember(d:SchoolDoc,id:unknown):Row|undefined{
  if(typeof id!=='string')return undefined;
+ if(id.startsWith('staff:')){const staffId=id.slice(6);if(!(d.staff??[]).some(s=>s.id===staffId))return undefined;const matches=d.members.filter(m=>m.staffId===staffId&&m.active===1);return matches.length===1?matches[0]:undefined;}
  if(!id.startsWith('teacher:'))return d.members.find(m=>m.id===id&&m.active===1);
  const teacherId=id.slice(8);if(!d.teachers.some(t=>t.id===teacherId))return undefined;
  const matches=d.members.filter(m=>m.teacherId===teacherId&&m.active===1);return matches.length===1?matches[0]:undefined;
 }
-export const assignmentIdentity=(d:SchoolDoc,id:string)=>id.startsWith('teacher:')?id:assignedMember(d,id)?.teacherId?'teacher:'+assignedMember(d,id)!.teacherId:id;
+export const assignmentIdentity=(d:SchoolDoc,id:string)=>id.startsWith('teacher:')||id.startsWith('staff:')?id:assignedMember(d,id)?.staffId?'staff:'+assignedMember(d,id)!.staffId:assignedMember(d,id)?.teacherId?'teacher:'+assignedMember(d,id)!.teacherId:id;
 export const assignedTo=(d:SchoolDoc,id:unknown,memberId:unknown)=>!!memberId&&assignedMember(d,id)?.id===memberId;
 export function eligibleScoreAssignee(d:SchoolDoc,id:unknown,leadersOnly=false){
  if(typeof id!=='string')return false;
@@ -31,12 +32,18 @@ export function eligibleScoreAssignee(d:SchoolDoc,id:unknown,leadersOnly=false){
  // Keep existing account-only schools compatible until their teacher roster is prepared.
  return teacher?(!leadersOnly||schoolLeader(teacher.position)):!d.teachers.length&&!!member;
 }
+export function eligiblePPSAssignee(d:SchoolDoc,id:unknown){
+ if(typeof id!=='string')return false;
+ if(id.startsWith('staff:'))return (d.staff??[]).some(s=>s.id===id.slice(6));
+ const member=assignedMember(d,id);return !!member?.staffId&&(d.staff??[]).some(s=>s.id===member.staffId)||eligibleScoreAssignee(d,id);
+}
 export function assignmentPeople(d:SchoolDoc){return [
  ...d.teachers.filter(t=>typeof t.name==='string'&&t.name.trim()).map(t=>({id:'teacher:'+t.id,name:t.name,kind:'teacher' as const,position:t.position||'',schoolLeader:schoolLeader(t.position),linked:!!assignedMember(d,'teacher:'+t.id),teacherId:t.id})).sort((a,b)=>a.name.localeCompare(b.name,'ms')),
- ...d.members.filter(m=>m.active===1).map(m=>({id:m.id,name:m.displayName||m.username,kind:'account' as const,position:'',schoolLeader:false,linked:true,teacherId:m.teacherId??null}))
+ ...(d.staff??[]).filter(t=>typeof t.name==='string'&&t.name.trim()).map(t=>({id:'staff:'+t.id,name:t.name,kind:'staff' as const,position:t.position||'',schoolLeader:false,linked:!!assignedMember(d,'staff:'+t.id),staffId:t.id,teacherId:null})).sort((a,b)=>a.name.localeCompare(b.name,'ms')),
+ ...d.members.filter(m=>m.active===1).map(m=>({id:m.id,name:m.displayName||m.username,kind:'account' as const,position:'',schoolLeader:false,linked:true,staffId:m.staffId??null,teacherId:m.teacherId??null}))
  ];}
 export function mayView(d:SchoolDoc,m:Row,t:Row){if(d.pdpc?.version===2)return m.role==='admin'||t.id===m.teacherId||Object.values(d.pdpc.assignments).flat().some(r=>r.teacherId===t.id&&(assignedTo(d,r.observerId,m.id)||assignedTo(d,r.reviewerId,m.id)));const o=own(d,m);return m.role==='admin'||t.id===m.teacherId||!!o&&(normalized(t.pp1)===normalized(o.name)||normalized(t.pp2)===normalized(o.name));}
-export function mayWrite(d:SchoolDoc,m:Row,t:Row,stage:string,year?:number){if(d.pdpc?.version===2){if(stage==='kedua')return false;if(stage==='kendiri')return t.id===m.teacherId;return (d.pdpc.assignments[String(year)]??[]).some(r=>r.teacherId===t.id&&assignedTo(d,r.observerId,m.id));}if(m.role==='admin')return true;if(stage==='kendiri')return t.id===m.teacherId;const o=own(d,m);return !!o&&normalized(stage==='pertama'?t.pp1:t.pp2)===normalized(o.name);}
+export function mayWrite(d:SchoolDoc,m:Row,t:Row,stage:string,year?:number){if(d.pdpc?.version===2){if(stage==='kedua')return false;if(stage==='kendiri')return t.id===m.teacherId;return (d.pdpc.assignments[String(year)]??[]).some(r=>r.teacherId===t.id&&eligibleScoreAssignee(d,r.observerId,true)&&assignedTo(d,r.observerId,m.id));}if(m.role==='admin')return true;if(stage==='kendiri')return t.id===m.teacherId;const o=own(d,m);return !!o&&normalized(stage==='pertama'?t.pp1:t.pp2)===normalized(o.name);}
 export function audit(d:SchoolDoc,m:Row,action:string,id:string,before:unknown,after:unknown){d.audit.push({id:crypto.randomUUID(),schoolId:d.school.id,actorId:m.id,action,entityId:id,before:before==null?null:JSON.stringify(before),after:after==null?null:JSON.stringify(after),createdAt:now()});}
 export function getData(d:SchoolDoc,m:Row){const teachers=d.teachers.filter(t=>mayView(d,m,t)),ids=new Set(teachers.map(t=>t.id));return {teachers,assessments:d.assessments.filter(a=>ids.has(a.teacherId)),rosterInfo:[...d.imports].sort((a,b)=>b.importedAt.localeCompare(a.importedAt))[0]??null,session:session(d,m),pdpc:d.pdpc?{...d.pdpc,assignments:Object.fromEntries(Object.entries(d.pdpc.assignments).map(([y,rows])=>[y,rows.filter(r=>ids.has(r.teacherId))])),people:assignmentPeople(d)}:undefined};}
 function roster(v:Row){if(!v||!['perdana','khas'].includes(v.type))fail('Kategori guru tidak sah.');const r:Row={name:text(v.name),type:v.type};for(const f of ['pp1','pp2','position','grade','session'])if(v[f]!==undefined){if(typeof v[f]!=='string'||v[f].length>180)fail('Maklumat guru tidak sah.');r[f]=v[f].trim();}if(v.sourceNumber!==undefined){if(!Number.isInteger(v.sourceNumber)||v.sourceNumber<0||v.sourceNumber>10000)fail('Nombor rujukan tidak sah.');r.sourceNumber=v.sourceNumber;}return r;}
@@ -45,12 +52,12 @@ export function dataCommand(d:SchoolDoc,m:Row,b:Row){
  if(b.action==='pdpc-assignments'){
   admin(m);if(!d.pdpc||d.pdpc.version!==2)fail('Tetapan Standard 4 baharu belum diaktifkan.',409);if(!Number.isInteger(b.year)||b.year<2020||b.year>2100||b.revision!==d.pdpc.revision)fail('Tetapan berubah. Muat semula dahulu.',409);
   if(!Array.isArray(b.rows)||b.rows.length>500)fail('Senarai tugasan tidak sah.');const seen=new Set();const rows=b.rows.map((r:Row)=>{if(!d.teachers.some(t=>t.id===r.teacherId)||seen.has(r.teacherId))fail('Guru tidak sah atau berulang.');seen.add(r.teacherId);
-   if(r.observerId!==null&&!eligibleScoreAssignee(d,r.observerId,true))fail('Pencerap mestilah pentadbir daripada senarai guru sekolah.');if(r.reviewerId!==null&&!eligibleScoreAssignee(d,r.reviewerId))fail('Pilih penyemak daripada senarai guru sekolah.');if(r.observerId&&assignmentIdentity(d,r.observerId)==='teacher:'+r.teacherId)fail('Guru tidak boleh mencerap diri sendiri.');if(r.observerId&&r.reviewerId&&assignmentIdentity(d,r.observerId)===assignmentIdentity(d,r.reviewerId))fail('Pencerap dan penyemak mesti individu berbeza.');if(r.reviewerId&&assignmentIdentity(d,r.reviewerId)==='teacher:'+r.teacherId)fail('Guru tidak boleh menyemak penilaian sendiri.');
+   if(r.observerId!==null&&!eligibleScoreAssignee(d,r.observerId,true))fail('Pencerap mestilah pentadbir daripada senarai guru sekolah.');if(r.reviewerId!==null&&!eligibleScoreAssignee(d,r.reviewerId,true))fail('Penyemak mestilah pentadbir daripada senarai guru sekolah.');if(r.observerId&&assignmentIdentity(d,r.observerId)==='teacher:'+r.teacherId)fail('Guru tidak boleh mencerap diri sendiri.');if(r.observerId&&r.reviewerId&&assignmentIdentity(d,r.observerId)===assignmentIdentity(d,r.reviewerId))fail('Pencerap dan penyemak mesti individu berbeza.');if(r.reviewerId&&assignmentIdentity(d,r.reviewerId)==='teacher:'+r.teacherId)fail('Guru tidak boleh menyemak penilaian sendiri.');
    const old=(d.pdpc!.assignments[String(b.year)]??[]).find(x=>x.teacherId===r.teacherId);if(d.assessments.some(a=>a.teacherId===r.teacherId&&a.year===b.year&&a.status!=='draft')&&(old?.observerId!==r.observerId||old?.reviewerId!==r.reviewerId))fail('Buka semula penilaian sebelum menukar tugasan.',409);return {teacherId:r.teacherId,observerId:r.observerId,reviewerId:r.reviewerId};});
   const before=structuredClone(d.pdpc);d.pdpc.assignments[String(b.year)]=rows;d.pdpc.revision++;audit(d,m,'pdpc_assignments',String(b.year),before,d.pdpc);return {ok:true};
  }
  if(b.action==='pdpc-review'){
-  const a=d.assessments.find(a=>a.id===b.id);if(!a||!d.pdpc||d.pdpc.version!==2)fail('Penilaian tidak ditemui.',404);const r=(d.pdpc.assignments[String(a.year)]??[]).find(r=>r.teacherId===a.teacherId);if(!r||!assignedTo(d,r.reviewerId,m.id)||assignedTo(d,r.observerId,m.id)||m.teacherId===a.teacherId||a.updatedBy===m.id)fail('Hanya penyemak berbeza yang ditugaskan boleh menyemak.',403);if(b.revision!==a.revision)fail('Penilaian berubah. Muat semula.',409);if(!['verify','return','reopen'].includes(b.decision))fail('Tindakan semakan tidak sah.');if(b.decision==='reopen'?!['verified','submitted'].includes(a.status):a.status!=='submitted')fail('Status tidak membenarkan semakan ini.',409);if(b.decision!=='verify'&&(typeof b.feedback!=='string'||b.feedback.trim().length<5||b.feedback.length>1500))fail('Nyatakan sebab sekurang-kurangnya 5 aksara.');
+  const a=d.assessments.find(a=>a.id===b.id);if(!a||!d.pdpc||d.pdpc.version!==2)fail('Penilaian tidak ditemui.',404);const r=(d.pdpc.assignments[String(a.year)]??[]).find(r=>r.teacherId===a.teacherId);if(!r||!eligibleScoreAssignee(d,r.reviewerId,true)||!assignedTo(d,r.reviewerId,m.id)||assignedTo(d,r.observerId,m.id)||m.teacherId===a.teacherId||a.updatedBy===m.id)fail('Hanya penyemak berbeza yang ditugaskan boleh menyemak.',403);if(b.revision!==a.revision)fail('Penilaian berubah. Muat semula.',409);if(!['verify','return','reopen'].includes(b.decision))fail('Tindakan semakan tidak sah.');if(b.decision==='reopen'?!['verified','submitted'].includes(a.status):a.status!=='submitted')fail('Status tidak membenarkan semakan ini.',409);if(b.decision!=='verify'&&(typeof b.feedback!=='string'||b.feedback.trim().length<5||b.feedback.length>1500))fail('Nyatakan sebab sekurang-kurangnya 5 aksara.');
   const before=structuredClone(a);Object.assign(a,{status:b.decision==='verify'?'verified':'draft',feedback:b.decision==='verify'?'':b.feedback.trim(),verifiedBy:b.decision==='verify'?m.id:null,verifiedAt:b.decision==='verify'?now():null,revision:a.revision+1,mutationId:'',updatedAt:now()});audit(d,m,'pdpc_'+b.decision,a.id,before,a);return {assessment:a};
  }
 
@@ -83,7 +90,7 @@ export function dataCommand(d:SchoolDoc,m:Row,b:Row){
  for(const f of ['evaluator','date','subject','classroom','notes'] as const)if(typeof v[f]!=='string'||v[f].length>(f==='notes'?5000:200))fail('Maklumat borang tidak sah.');
  const evaluator=d.pdpc?.version===2?(own(d,m)?.name||m.displayName):m.role==='admin'?v.evaluator.trim():(own(d,m)?.name||m.displayName),result=calculate(v.scores,t.type as TeacherType);
  if(v.status==='submitted'&&(result.total===null||!evaluator||!v.subject.trim()||!v.classroom.trim()||!/^\d{4}-\d{2}-\d{2}$/.test(v.date)||Number(v.date.slice(0,4))!==v.year||Number.isNaN(Date.parse(v.date))||new Date(v.date).toISOString().slice(0,10)!==v.date))fail('Lengkapkan semua skor, penilai, mata pelajaran, kelas dan tarikh.');
- if(d.pdpc?.version===2&&v.status==='submitted'&&!(d.pdpc.assignments[String(v.year)]??[]).find(r=>r.teacherId===t.id&&r.observerId&&r.reviewerId&&assignedMember(d,r.observerId)&&assignedMember(d,r.reviewerId)))fail('Pentadbir perlu menetapkan pencerap dan penyemak yang dipautkan kepada akaun aktif.');
+ if(d.pdpc?.version===2&&v.status==='submitted'&&!(d.pdpc.assignments[String(v.year)]??[]).find(r=>r.teacherId===t.id&&eligibleScoreAssignee(d,r.observerId,true)&&eligibleScoreAssignee(d,r.reviewerId,true)&&assignedMember(d,r.observerId)&&assignedMember(d,r.reviewerId)))fail('Pentadbir perlu menetapkan pencerap dan penyemak yang dipautkan kepada akaun aktif.');
  const id=previous?.id||[t.id,v.year,v.stage,...(d.pdpc?.version===2?[d.pdpc.epoch]:[])].join(':'),record={id,schoolId:d.school.id,teacherId:t.id,year:v.year,stage:v.stage,status:v.status,scores:v.scores,evaluator,date:v.date,subject:v.subject.trim(),classroom:v.classroom.trim(),notes:v.notes.trim(),total:result.total===null?null:result.total.toFixed(2),revision:v.revision+1,mutationId:v.mutationId,updatedAt:now(),...(d.pdpc?.version===2?{epoch:d.pdpc.epoch,updatedBy:m.id}: {})};
  audit(d,m,v.status==='submitted'?'assessment_submitted':'assessment_draft_saved',id,previous??null,record);d.assessments=d.assessments.filter(a=>a.id!==id);d.assessments.push(record);return {assessment:record};
 }
@@ -105,8 +112,8 @@ export async function schoolCommand(d:SchoolDoc,m:Row,b:Row){admin(m);
  }
  if(b.action==='school-name'){const name=text(b.name,5,160),old=d.school.name;d.school.name=name;audit(d,m,'school_name_updated',d.school.id,{name:old},{name});return {ok:true};}
  if(b.action==='invite'){
-  const u=username(b.username),role=b.role==='admin'?'admin':'member';const t=b.teacherId?d.teachers.find(t=>t.id===b.teacherId):null;if(b.teacherId&&!t)fail('Guru tidak ditemui.',404);if(!t&&role!=='admin')fail('Pilih guru untuk akaun.');if(d.members.some(x=>x.username===u||t&&x.teacherId===t.id))fail('ID pengguna atau guru sudah mempunyai akaun.',409);
-  const member={id:crypto.randomUUID(),schoolId:d.school.id,username:u,authUserId:null,teacherId:t?.id??null,displayName:t?.name||text(b.displayName),role,active:1,mustChangePassword:0,createdAt:now()};d.members.push(member);return invite(d,m,member,'account_invited');
+  const u=username(b.username),role=b.role==='admin'?'admin':'member';if(b.teacherId&&b.staffId)fail('Pilih seorang guru atau AKP sahaja.');const t=b.teacherId?d.teachers.find(t=>t.id===b.teacherId):null,staff=b.staffId?(d.staff??[]).find(s=>s.id===b.staffId):null;if(b.teacherId&&!t||b.staffId&&!staff)fail('Guru / AKP tidak ditemui.',404);if(!t&&!staff&&role!=='admin')fail('Pilih guru atau AKP untuk akaun.');if(d.members.some(x=>x.username===u||t&&x.teacherId===t.id||staff&&x.staffId===staff.id))fail('ID pengguna atau guru / AKP sudah mempunyai akaun.',409);
+  const member={id:crypto.randomUUID(),schoolId:d.school.id,username:u,authUserId:null,teacherId:t?.id??null,staffId:staff?.id??null,displayName:t?.name||staff?.name||text(b.displayName),role,active:1,mustChangePassword:0,createdAt:now()};d.members.push(member);return invite(d,m,member,'account_invited');
  }
  const member=d.members.find(x=>x.id===b.memberId);if(!member)fail('Akaun tidak ditemui.',404);if(member.id===m.id)fail('Gunakan tetapan kata laluan untuk akaun sendiri.');
  if(b.action==='reset-account'){revoke(d,[member.id]);return invite(d,m,member,'account_reset_requested');}
@@ -114,7 +121,7 @@ export async function schoolCommand(d:SchoolDoc,m:Row,b:Row){admin(m);
  fail('Tindakan tidak sah.');
 }
 async function invite(d:SchoolDoc,m:Row,member:Row,action:string){const token=secret();d.invitations=d.invitations.filter(i=>i.memberId!==member.id);d.invitations.push({hash:await hash(token),memberId:member.id,expiresAt:new Date(Date.now()+604800000).toISOString(),consumedAt:null});audit(d,m,action,member.id,null,{username:member.username,teacherId:member.teacherId,role:member.role});return {username:member.username,schoolCode:d.school.code,invitation:token,expiresDays:7};}
-export function getSchool(d:SchoolDoc,m:Row){admin(m);return {members:d.members.map(m=>({id:m.id,username:m.username,teacherId:m.teacherId,displayName:m.displayName,role:m.role,active:m.active,hasAccount:!!m.authUserId})),events:[...d.audit].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,100)};}
+export function getSchool(d:SchoolDoc,m:Row){admin(m);return {staff:structuredClone(d.staff??[]),members:d.members.map(m=>({id:m.id,username:m.username,teacherId:m.teacherId,staffId:m.staffId??null,displayName:m.displayName,role:m.role,active:m.active,hasAccount:!!m.authUserId})),events:[...d.audit].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,100)};}
 
 export const isPGB=(d:SchoolDoc,m:Row)=>d.members.some(x=>x.id===m.id&&x.active===1)&&/^(GURU BESAR|PENGETUA)(?:\s|$)/.test(String(own(d,m)?.position??'').trim().toUpperCase());
 
