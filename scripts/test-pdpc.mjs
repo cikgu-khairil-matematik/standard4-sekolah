@@ -9,9 +9,14 @@ denied('mt',assign,403);denied('a',{...assign,revision:9},409);denied('a',{...as
 const assessment={id:'',teacherId:'t',year:2026,stage:'pertama',epoch:'epoch-test',status:'draft',revision:0,mutationId:'aaaaaaaa-bbbb-cccc-1111',scores:Array(38).fill(4),evaluator:'Pencerap',date:'2026-10-21',subject:'Matematik',classroom:'4 Contoh',notes:'',evidence:['https://example.test/pdpc-proof']};
 denied('mr',{action:'save',assessment},403);denied('mo',{action:'save',assessment:{...assessment,epoch:'old'}},409);denied('mo',{action:'save',assessment:{...assessment,stage:'kedua'}},403);denied('mo',{action:'save',assessment:{...assessment,year:2025}},403);
 denied('mo',{action:'save',assessment:{...assessment,evidence:['javascript:alert(1)']}},400);
+denied('mo',{action:'save',assessment:{...assessment,status:'submitted'}},400);
 let result=call('mo',{action:'save',assessment});assert.deepEqual(result.assessment.evidence,assessment.evidence);assert.equal(result.assessment.total,'100.00');assert.equal(result.assessment.epoch,'epoch-test');
+denied('mo',{action:'save',assessment:{...assessment,revision:1,status:'submitted',mutationId:'eeeeeeee-bbbb-cccc-1111',evidence:[]}},400);
+denied('mo',{action:'save',assessment:{...assessment,revision:1,status:'submitted',mutationId:'eeeeeeee-bbbb-cccc-2222',evidence:['https://example.test/new-unsaved-proof']}},400);
 result=call('mo',{action:'save',assessment:{...assessment,revision:1,mutationId:'aaaaaaaa-bbbb-cccc-2222',status:'submitted'}});const id=result.assessment.id;
 denied('mo',{action:'pdpc-review',id,revision:2,decision:'verify'},403);denied('mr',{action:'pdpc-review',id,revision:1,decision:'verify'},409);call('mr',{action:'pdpc-review',id,revision:2,decision:'verify'});assert.equal(d.assessments[0].status,'verified');denied('mo',{action:'save',assessment:{...assessment,revision:3,mutationId:'aaaaaaaa-bbbb-cccc-3333'}},409);
 call('mr',{action:'pdpc-review',id,revision:3,decision:'reopen',feedback:'Betulkan maklumat kelas'});assert.equal(d.assessments[0].status,'draft');assert.equal(d.assessments[0].verifiedAt,null);
 assert.equal(D.getData(d,d.members.find(m=>m.id==='mo')).teachers.some(t=>t.id==='t'),true);d.pdpc.assignments['2026']=[];assert.equal(D.mayWrite(d,d.members.find(m=>m.id==='mo'),d.teachers[0],'pertama',2026),false);assert.equal(D.mayWrite(d,d.members.find(m=>m.id==='mt'),d.teachers[0],'kendiri',2026),true);
 console.log('PASS PdPc v2: leader-only observer, distinct reviewer, stable IDs, year isolation, stale/reset epoch rejection, zero-safe scoring, submit/verify/reopen, independent review and immediate revocation.');
+
+console.log('PASS Standard 4 evidence: reject missing or newly added unsaved links at submission; allow evidence saved in a prior draft; invalid links leave records unchanged.');

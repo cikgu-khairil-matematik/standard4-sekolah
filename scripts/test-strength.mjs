@@ -69,3 +69,5 @@ console.log('PASS: nine aspects, atomic authorization, tenant-safe assignments, 
  const result=S.strengthCommand(resetDoc,boss,{action:'reset-all',year:2026,revisions:rows.map(r=>({aspect:r.aspect,revision:r.revision}))});assert.ok(result.records.every(r=>r.status==='draft'&&r.revision===1&&r.verifiedAt===null));assert.deepEqual(resetDoc.assessments,before.assessments);assert.ok(resetDoc.audit.some(r=>r.action==='strength_reset_all'));
  console.log('PASS reset: authorization, stale revisions, all nine records, audit and Standard 4 preservation.');
 }
+
+assert.ok(M.strengthIssues('A8',{...na,evidence:[]}).some(s=>s.includes('evidens')),'Not-applicable still requires evidence');

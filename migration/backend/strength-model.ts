@@ -54,8 +54,9 @@ export function cleanStrengthData(aspect:AspectId,input:unknown):StrengthData{
  return result;
 }
 export function strengthIssues(aspect:AspectId,d:StrengthData):string[]{
- if(!d.applicable)return d.notes.trim().length<10?['Nyatakan sebab asrama tidak berkenaan, sekurang-kurangnya 10 aksara.']:[];
- const issues:string[]=[];if(!d.evidence.some(v=>v.trim()))issues.push('Masukkan sekurang-kurangnya satu pautan atau fail evidens sebelum menghantar.');for(const f of FIELDS[aspect]??[])if(d.values[f.key]==null)issues.push('Lengkapkan '+f.label.toLowerCase()+'.');
+ const issues:string[]=[];if(!d.evidence.some(v=>v.trim()))issues.push('Masukkan sekurang-kurangnya satu pautan atau fail evidens sebelum menghantar.');
+ if(!d.applicable){if(d.notes.trim().length<10)issues.push('Nyatakan sebab asrama tidak berkenaan, sekurang-kurangnya 10 aksara.');return issues;}
+ for(const f of FIELDS[aspect]??[])if(d.values[f.key]==null)issues.push('Lengkapkan '+f.label.toLowerCase()+'.');
  if(aspect==='A2'&&d.notes.trim().length<5)issues.push('Nyatakan sumber rumusan Standard 4 tahun sebelumnya dalam catatan.');
  if(HAS_INVENTORY.includes(aspect)){
   if(!d.rows.length&&!d.none)issues.push('Tambah prasarana atau tandakan tiada prasarana.');
