@@ -1,7 +1,7 @@
 import {cleanTeacherRosterRow,normalized,type TeacherRosterRow} from './scoring';
 export const rosterHeaders=['BIL','NAMA','JANTINA','NO IC','JAWATAN','GRED','SESI','STATUS','KEBERADAAN','KATEGORI GURU','ID GURU'];
 const key=(v:unknown)=>normalized(String(v??'')).replace(/^\uFEFF/,'').replace(/[._#]/g,'').replace(/\s+/g,' ').trim();
-export function parseTeacherTable(table:unknown[][]):{rows:TeacherRosterRow[];errors:string[]}{
+export function parseTeacherTable(table:unknown[][],rowNumbers?:number[]):{rows:TeacherRosterRow[];errors:string[]}{
  const hi=table.findIndex(r=>r.some(v=>['NAMA','NAMA GURU','NAMA PYD'].includes(key(v))));
  if(hi<0)return {rows:[],errors:['Lajur NAMA tidak ditemui. Gunakan tapak Excel yang disediakan.']};
  const headers=table[hi].map(key),col=(...names:string[])=>headers.findIndex(h=>names.includes(h)),name=col('NAMA','NAMA GURU','NAMA PYD'),kind=col('KATEGORI GURU','KATEGORI','JENIS','ALIRAN');
@@ -15,7 +15,7 @@ export function parseTeacherTable(table:unknown[][]):{rows:TeacherRosterRow[];er
    const c=col(...names);if(c>=0){const raw=row[c];v[field]=field==='ic'&&typeof raw==='number'&&Number.isSafeInteger(raw)&&raw>=0?String(raw).padStart(12,'0'):String(raw??'');if(field==='id'&&!v[field])delete v[field];}
   }
   const n=col('BIL','BILANGAN');if(n>=0&&String(row[n]??'').trim())v.sourceNumber=Number(row[n]);
-  try{rows.push(cleanTeacherRosterRow(v));}catch(e){errors.push('Baris '+(i+1)+': '+(e as Error).message);}
+  try{rows.push(cleanTeacherRosterRow(v));}catch(e){errors.push('Baris '+(rowNumbers?.[i]??i+1)+': '+(e as Error).message);}
  }
  const names=new Set<string>(),ics=new Set<string>();
  for(const row of rows){const n=normalized(row.name);if(names.has(n))errors.push('Nama berulang: '+row.name);names.add(n);if(row.ic){if(ics.has(row.ic))errors.push('No. IC berulang dalam fail.');ics.add(row.ic);}}
@@ -28,10 +28,18 @@ export async function readTeacherWorkbook(file:File){
  const {Workbook}=await import('exceljs'),wb=new Workbook();
  await wb.xlsx.load(await file.arrayBuffer(),{ignoreNodes:['dataValidations','drawing','extLst','conditionalFormatting']} as never);
  const sheet=wb.getWorksheet('Senarai Guru')??wb.worksheets.find(s=>s.state==='visible');if(!sheet)throw new Error('Helaian senarai guru tidak ditemui.');
- if(sheet.rowCount>550||sheet.columnCount>30)throw new Error('Had 500 guru dan 30 lajur. Gunakan tapak Excel yang disediakan.');
- const table:unknown[][]=[];
- for(let r=1;r<=sheet.rowCount;r++){const row:unknown[]=[];for(let c=1;c<=sheet.columnCount;c++){const cell=sheet.getCell(r,c),v=cell.value;if(v&&typeof v==='object'&&('formula' in v||'sharedFormula' in v))throw new Error('Baris '+r+': tukar formula kepada nilai biasa sebelum import.');row.push(v&&typeof v==='object'&&'richText' in v?v.richText.map(x=>x.text).join(''):v??'');}table.push(row);}
- return parseTeacherTable(table);
+ // Excel/Google Sheets can retain formatting far beyond the actual table.
+ // Inspect populated cells only, rather than the worksheet's used-range dimensions.
+ const table:unknown[][]=[],rowNumbers:number[]=[];
+ sheet.eachRow(source=>{const row:unknown[]=[];source.eachCell(cell=>{
+  const v=cell.value;if(v===null||v===undefined)return;
+  if(typeof v==='object'&&('formula' in v||'sharedFormula' in v))throw new Error('Baris '+source.number+': tukar formula kepada nilai biasa sebelum import.');
+  const value=typeof v==='object'&&'richText' in v?v.richText.map(x=>x.text).join(''):v;
+  if(!String(value??'').trim())return;
+  if(Number(cell.col)>30)throw new Error('Baris '+source.number+': terdapat data selepas lajur AD. Had 30 lajur; kosongkan data tambahan sebelum import.');
+  row[Number(cell.col)-1]=value;
+ });if(row.length){table.push(row);rowNumbers.push(source.number);}});
+ return parseTeacherTable(table,rowNumbers);
 }
 export async function saveWorkbook(wb:import('exceljs').Workbook,name:string){
  const buffer=await wb.xlsx.writeBuffer();const bytes=new Uint8Array(buffer);const url=URL.createObjectURL(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));const a=document.createElement('a');a.href=url;a.download=name;a.style.display='none';document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url);},10000);
