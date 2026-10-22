@@ -66,3 +66,7 @@ console.log('PASS workbook refinement: dynamic action maxima, exact normalized p
  A.managementCommand(doc,pgb,{action:'verify-standard',year:2026,group:'1',revisions});assert.ok(A.managementView(doc,pgb,2026).records.filter(r=>r.aspect.startsWith('1.')).every(r=>r.status==='verified'));assert.deepEqual(doc.assessments,before.assessments);
  console.log('PASS standard verification: linked PGB only, stale revisions, atomic group verification and preserved PdPc.');
 }
+
+reportD.pdpc={version:2,epoch:'existing-rounds',revision:1,assignments:{}};
+const modernReport=view(reportD).report;assert.equal(modernReport.pdpc.submitted.kedua.count,1,'Round 2 must appear in modern-school reports');assert.equal(modernReport.pdpc.submitted.kedua.overall,100);assert.equal(modernReport.pdpc.submitted.all.expectedCount,6);assert.equal(modernReport.pdpc.submitted.all.count,2);assert.equal(modernReport.pdpc.submitted.all.overall,50,'Second observation contributes to the existing report formula');
+console.log('PASS modern Standard 4 reports include the second observation in the stage filter, totals, coverage and existing averages.');

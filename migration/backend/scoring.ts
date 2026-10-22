@@ -5,7 +5,7 @@ export type Teacher = {id:string;name:string;type:TeacherType;pp1:string;pp2:str
 export type RosterInput={name:string;type:TeacherType;pp1?:string;pp2?:string;position?:string;grade?:string;session?:string;sourceNumber?:number};
 export type Assessment = {id:string;teacherId:string;year:number;stage:Stage;status:'draft'|'submitted';scores:(number|null)[];evaluator:string;date:string;subject:string;classroom:string;notes:string;evidence?:string[];total:string|null;revision:number;updatedAt:string;mutationId?:string;localPending?:boolean};
 export const stages:Stage[]=['kendiri','pertama','kedua'];
-export const stageNames:Record<Stage,string>={kendiri:'Penilaian kendiri',pertama:'Penilaian pertama',kedua:'Penilaian kedua'};
+export const stageNames:Record<Stage,string>={kendiri:'Penilaian Kendiri',pertama:'Pencerapan 1',kedua:'Pencerapan 2'};
 export function assignedEvaluator(teacher:Pick<Teacher,'name'|'pp1'|'pp2'>,stage:Stage){return stage==='kendiri'?teacher.name:stage==='pertama'?(teacher.pp1||''):(teacher.pp2||'');}
 export const rubric=source;
 export const round=(n:number)=>Math.round((n+Number.EPSILON)*100)/100;
