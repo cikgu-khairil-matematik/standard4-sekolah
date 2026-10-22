@@ -1,5 +1,5 @@
 import {calculate,stages,type TeacherType} from './scoring.ts';
-import {scoreEntry,isPGB,admin,audit,fail,now,assignmentPeople,assignmentIdentity,assignedMember,assignedTo,eligibleScoreAssignee,type Row,type SchoolDoc} from './domain.ts';
+import {scoreEntry,isPGB,admin,audit,fail,now,assignmentPeople,assignmentIdentity,assignedMember,assignedTo,eligiblePPSAssignee,type Row,type SchoolDoc} from './domain.ts';
 import {MANAGEMENT_UNITS,emptyManagementRecord,cleanManagementData,managementIssues,validManagementUnit,validYear,defaultReportNotes,cleanReportNotes,mean,type ReportNotes,type SchoolReport,type PdpcSummary,type ManagementRecord,type ManagementBundle,type ManagementUnitId} from './management-model.ts';
 type Store=SchoolDoc&{management?:Record<string,Partial<Record<ManagementUnitId,ManagementRecord>>>;managementReports?:Record<string,ReportNotes>};
 function permissions(d:SchoolDoc,m:Row,r:ManagementRecord){const canAdmin=m.role==='admin',writer=assignedTo(d,r.assigneeId,m.id)||(r.pssIds??[]).some(id=>assignedTo(d,id,m.id)),reviewer=assignedTo(d,r.reviewerId,m.id);return {canAdmin,canRead:canAdmin||writer||reviewer,canEdit:(canAdmin||writer)&&['draft','returned'].includes(r.status),canReview:(canAdmin||reviewer)&&r.status==='submitted'&&!writer&&(r as unknown as Row).lastEditorId!==m.id};}
@@ -54,9 +54,9 @@ export function managementCommand(d:SchoolDoc,m:Row,b:Row):ManagementBundle{
  if(b.action==='assign'){
   if(['submitted','verified'].includes(r.status))fail('Buka semula borang sebelum menukar penugasan.',409);
   const eligible=(id:unknown)=>id===null||typeof id==='string'&&d.members.some(x=>x.id===id&&x.active===1);
-  if(b.assigneeId!==null&&!eligibleScoreAssignee(d,b.assigneeId))fail('Pilih pengisi daripada senarai guru sekolah.');if(!eligible(b.reviewerId))fail('Pilih penyemak daripada akaun aktif sekolah.',400);
+  if(b.assigneeId!==null&&!eligiblePPSAssignee(d,b.assigneeId))fail('Pilih pengisi daripada senarai guru dan AKP sekolah.');if(!eligible(b.reviewerId))fail('Pilih penyemak daripada akaun aktif sekolah.',400);
   if(b.assigneeId&&assignedTo(d,b.assigneeId,b.reviewerId))fail('Pengisi dan penyemak mesti orang yang berbeza.');
-  const pss=b.pssIds??(b.assigneeId?[b.assigneeId]:[]);if(!Array.isArray(pss)||pss.length>50||new Set(pss.map((id:string)=>typeof id==='string'?assignmentIdentity(d,id):id)).size!==pss.length||pss.some((id:unknown)=>!eligibleScoreAssignee(d,id))||pss.some((id:string)=>assignedTo(d,id,b.reviewerId))||b.assigneeId&&!pss.includes(b.assigneeId))fail('Pilih PSS daripada senarai guru dan penyemak yang berbeza.');r.assigneeId=b.assigneeId;r.pssIds=pss;r.reviewerId=b.reviewerId;
+  const pss=b.pssIds??(b.assigneeId?[b.assigneeId]:[]);if(!Array.isArray(pss)||pss.length>50||new Set(pss.map((id:string)=>typeof id==='string'?assignmentIdentity(d,id):id)).size!==pss.length||pss.some((id:unknown)=>!eligiblePPSAssignee(d,id))||pss.some((id:string)=>assignedTo(d,id,b.reviewerId))||b.assigneeId&&!pss.includes(b.assigneeId))fail('Pilih PPS daripada senarai guru / AKP dan penyemak yang berbeza.');r.assigneeId=b.assigneeId;r.pssIds=pss;r.reviewerId=b.reviewerId;
  }else if(b.action==='save'){
   if(!p.canEdit)fail('Borang telah dihantar atau disahkan. Minta penyemak membuka semula.',409);
   if(typeof b.mutationId!=='string'||!/^[a-f0-9-]{16,80}$/i.test(b.mutationId))fail('Pengecam simpanan tidak sah.');

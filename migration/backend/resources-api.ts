@@ -1,6 +1,6 @@
 import {achievementCommand,achievementView,type AchievementStore} from './achievement-api.ts';
 import {effectiveAchievementPSS,emptyAchievementRecord} from './achievement-model.ts';
-import {isPGB,admin,audit,fail,now,assignmentIdentity,assignedTo,eligibleScoreAssignee,type Row,type SchoolDoc} from './domain.ts';
+import {isPGB,text,assignmentPeople,admin,audit,fail,now,assignmentIdentity,assignedTo,eligiblePPSAssignee,type Row,type SchoolDoc} from './domain.ts';
 import {ASPECTS,validYear} from './strength-model.ts';
 import {MANAGEMENT_UNITS} from './management-model.ts';
 import {strengthCommand,strengthView} from './strength-api.ts';
@@ -13,9 +13,22 @@ const str=(v:unknown,max=200)=>{if(typeof v!=='string'||v.length>max)fail('Teks 
 export function folderId(value:string){if(!value)return '';let u:URL;try{u=new URL(value);}catch{fail('Gunakan pautan folder Google Drive yang lengkap.');}if(u!.protocol!=='https:'||u!.hostname!=='drive.google.com'||u!.username||u!.password)fail('Gunakan pautan folder Google Drive yang sah.');const id=u!.pathname.match(/\/folders\/([a-zA-Z0-9_-]{10,})/)?.[1];if(!id)fail('Pautan mesti menuju ke folder Google Drive.');return id!;}
 function active(d:SchoolDoc,m:Row){if(!d.members.some(p=>p.id===m.id&&p.active===1))fail('Akses akaun tidak aktif.',403);}
 function pdpcStatus(d:SchoolDoc,year:number){const rows=d.assessments.filter(a=>a.year===year&&d.teachers.some(t=>t.id===a.teacherId)&&(d.pdpc?.version!==2||a.stage!=='kedua')),expected=d.teachers.length*(d.pdpc?.version===2?2:3),signature=JSON.stringify(rows.map(a=>[a.id,a.revision,a.status]).sort((a,b)=>String(a[0]).localeCompare(String(b[0])))),complete=expected>0&&rows.length===expected&&rows.every(a=>d.pdpc?.version===2?['submitted','verified'].includes(a.status):a.status==='submitted'),confirmation=(d as Store).resources?.pdpcConfirmations?.[String(year)];return {status:complete&&(d.pdpc?.version===2?rows.every(a=>a.status==='verified'):confirmation?.signature===signature)?'verified':complete?'submitted':rows.length?'draft':'empty',count:rows.filter(a=>['submitted','verified'].includes(a.status)).length,expected,signature};}
-export function resourcesView(d:SchoolDoc,m:Row,year:number){active(d,m);if(!validYear(year))fail('Tahun tidak sah.');const r=(d as Store).resources;return {isPGB:isPGB(d,m),standard4:pdpcStatus(d,year),lists:structuredClone(r?.lists?.[String(year)]??{revision:0,classes:[],subjects:[]}),settings:structuredClone(r?.settings??defaults()),pss: m.role==='admin'?structuredClone(r?.pss?.[String(year)]??{revision:0,rows:[]}):undefined,year};}
+export function resourcesView(d:SchoolDoc,m:Row,year:number){active(d,m);if(!validYear(year))fail('Tahun tidak sah.');const r=(d as Store).resources;return {staff:m.role==='admin'?structuredClone(d.staff??[]):undefined,people:assignmentPeople(d),isPGB:isPGB(d,m),standard4:pdpcStatus(d,year),lists:structuredClone(r?.lists?.[String(year)]??{revision:0,classes:[],subjects:[]}),settings:structuredClone(r?.settings??defaults()),pss: m.role==='admin'?structuredClone(r?.pss?.[String(year)]??{revision:0,rows:[]}):undefined,year};}
 export function resourcesCommand(d:SchoolDoc,m:Row,b:Row){
  active(d,m);if(!validYear(b.year))fail('Tahun tidak sah.');const store=d as Store;
+ if(b.action==='staff-import'){
+  admin(m);if(!Array.isArray(b.rows)||!b.rows.length||b.rows.length>200)fail('Masukkan antara 1 hingga 200 AKP.');
+  const clean=b.rows.map((r:Row)=>({name:text(r.name),position:text(r.position||'AKP',2,180)})),key=(s:string)=>s.trim().toLocaleUpperCase().replace(/\s+/g,' ');
+  if(new Set(clean.map((r:Row)=>key(r.name))).size!==clean.length)fail('Nama AKP berulang.');
+  const next=structuredClone(d.staff??[]);for(const r of clean){const old=next.find(s=>key(s.name)===key(r.name));if(old)Object.assign(old,r);else next.push({id:crypto.randomUUID(),...r});}
+  if(next.length>200)fail('Maksimum 200 AKP sekolah.');d.staff=next;audit(d,m,'staff_imported',d.school.id,null,{count:clean.length});return resourcesView(d,m,b.year);
+ }
+ if(b.action==='pps-assignments'){
+  admin(m);if(!Array.isArray(b.groups)||!b.groups.length||b.groups.length>2||new Set(b.groups.map((g:Row)=>g.module)).size!==b.groups.length||b.groups.some((g:Row)=>!['management','achievement'].includes(g.module)))fail('Kumpulan PPS tidak sah.');
+  const copy=structuredClone(d);for(const g of b.groups)resourcesCommand(copy,m,{action:'assign-all',module:g.module,year:b.year,rows:g.rows});
+  (d as Row).management=(copy as Row).management;(d as Row).achievement=(copy as Row).achievement;store.resources??={};store.resources.pss=(copy as Store).resources?.pss;d.audit=copy.audit;
+  audit(d,m,'pps_assignments_confirmed',String(b.year),null,{count:b.groups.reduce((n:number,g:Row)=>n+g.rows.length,0)});return {ok:true};
+ }
  if(b.action==='verify-standard4'){
   if(d.pdpc?.version===2)fail('Standard 4 disahkan melalui pegawai penyemak bagi setiap penilaian.',409);
   if(!isPGB(d,m))fail('Hanya PGB boleh mengesahkan Standard 4.',403);const state=pdpcStatus(d,b.year);if(state.status!=='submitted')fail('Lengkapkan dan hantar semua penilaian sebelum pengesahan Standard 4.',409);if(b.signature!==state.signature)fail('Penilaian berubah. Muat semula dahulu.',409);
@@ -41,10 +54,10 @@ export function resourcesCommand(d:SchoolDoc,m:Row,b:Row){
   audit(d,m,'assignments_confirmed',b.module+':'+b.year,null,{aspects:[...ids]});return {ok:true,count:b.rows.length};
  }
  if(b.action==='pss'){
-  admin(m);const old=store.resources?.pss?.[String(b.year)]??{revision:0,rows:[]};if(b.revision!==old.revision)fail('Senarai PSS telah berubah. Muat semula dahulu.',409);if(!Array.isArray(b.rows)||b.rows.length>100)fail('Maksimum 100 penugasan PSS.');const ids=new Set(),codes=new Set();
-  const rows=b.rows.map((r:Row)=>{const id=str(r.id,80),standard=str(r.standard,40),title=str(r.title,200);if(!id||ids.has(id)||codes.has(standard)||!/^5(?:\.\d{1,2}){0,3}$/.test(standard)||!title)fail('Lengkapkan kod Standard 5, tajuk dan elakkan pendua.');ids.add(id);codes.add(standard);if(!Array.isArray(r.memberIds)||r.memberIds.length>50||new Set(r.memberIds.map((id:string)=>typeof id==='string'?assignmentIdentity(d,id):id)).size!==r.memberIds.length||r.memberIds.some((id:unknown)=>!eligibleScoreAssignee(d,id)))fail('Pilih PSS daripada senarai guru sekolah.');return {id,standard,title,memberIds:r.memberIds};});
+  admin(m);const old=store.resources?.pss?.[String(b.year)]??{revision:0,rows:[]};if(b.revision!==old.revision)fail('Senarai PPS telah berubah. Muat semula dahulu.',409);if(!Array.isArray(b.rows)||b.rows.length>100)fail('Maksimum 100 penugasan PPS.');const ids=new Set(),codes=new Set();
+  const rows=b.rows.map((r:Row)=>{const id=str(r.id,80),standard=str(r.standard,40),title=str(r.title,200);if(!id||ids.has(id)||codes.has(standard)||!/^5(?:\.\d{1,2}){0,3}$/.test(standard)||!title)fail('Lengkapkan kod Standard 5, tajuk dan elakkan pendua.');ids.add(id);codes.add(standard);if(!Array.isArray(r.memberIds)||r.memberIds.length>50||new Set(r.memberIds.map((id:string)=>typeof id==='string'?assignmentIdentity(d,id):id)).size!==r.memberIds.length||r.memberIds.some((id:unknown)=>!eligiblePPSAssignee(d,id)))fail('Pilih PPS daripada senarai guru dan AKP sekolah.');return {id,standard,title,memberIds:r.memberIds};});
   const changed=achievementView(d,m,b.year).records.filter(r=>JSON.stringify([...r.pssIds].sort())!==JSON.stringify(effectiveAchievementPSS(rows,r.aspect).sort()));
-  for(const r of changed){if(['submitted','verified'].includes(r.status))fail('Buka semula borang '+r.aspect+' sebelum menukar PSS.',409);if(effectiveAchievementPSS(rows,r.aspect).some(id=>assignedTo(d,id,r.reviewerId)))fail('PSS dan penyemak '+r.aspect+' mesti berbeza.');}
+  for(const r of changed){if(['submitted','verified'].includes(r.status))fail('Buka semula borang '+r.aspect+' sebelum menukar PPS.',409);if(effectiveAchievementPSS(rows,r.aspect).some(id=>assignedTo(d,id,r.reviewerId)))fail('PPS dan penyemak '+r.aspect+' mesti berbeza.');}
   for(const r of changed){const a=d as AchievementStore;a.achievement??={};a.achievement[String(b.year)]??={};const oldRecord=a.achievement[String(b.year)][r.aspect]??emptyAchievementRecord(r.aspect,b.year);a.achievement[String(b.year)][r.aspect]={...oldRecord,revision:oldRecord.revision+1,updatedAt:now(),updatedBy:m.id};}
   store.resources??={};store.resources.pss??={};store.resources.pss[String(b.year)]={revision:old.revision+1,rows};audit(d,m,'pss_achievement',String(b.year),old,{revision:old.revision+1,rows});return resourcesView(d,m,b.year);
  }
