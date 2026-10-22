@@ -6,7 +6,7 @@ const sa=compile(fs.readFileSync('migration/backend/strength-api.ts','utf8').rep
 const ma=compile(fs.readFileSync('migration/backend/management-api.ts','utf8').replace("'./domain.ts'",JSON.stringify(domain)).replace("'./management-model.ts'",JSON.stringify(management)).replace("'./scoring.ts'",JSON.stringify(scoring)));
 const achievement=compile(fs.readFileSync('migration/backend/achievement-model.ts','utf8'));
 const aa=compile(fs.readFileSync('migration/backend/achievement-api.ts','utf8').replace("'./domain.ts'",JSON.stringify(domain)).replace("'./achievement-model.ts'",JSON.stringify(achievement)));
-let source=fs.readFileSync('migration/backend/resources-api.ts','utf8');for(const [key,value] of Object.entries({'./achievement-api.ts':aa,'./achievement-model.ts':achievement,'./domain.ts':domain,'./strength-model.ts':strength,'./management-model.ts':management,'./strength-api.ts':sa,'./management-api.ts':ma}))source=source.replace(JSON.stringify(key),JSON.stringify(value)).replace("'"+key+"'",JSON.stringify(value));
+let source=fs.readFileSync('migration/backend/resources-api.ts','utf8');for(const [key,value] of Object.entries({'./resources-model.ts':compile(fs.readFileSync('migration/backend/resources-model.ts','utf8')),'./achievement-api.ts':aa,'./achievement-model.ts':achievement,'./domain.ts':domain,'./strength-model.ts':strength,'./management-model.ts':management,'./strength-api.ts':sa,'./management-api.ts':ma}))source=source.replace(JSON.stringify(key),JSON.stringify(value)).replace("'"+key+"'",JSON.stringify(value));
 const R=await import(compile(source)),M=await import(management),S=await import(strength),A=await import(ma);
 const fixture=()=>({school:{id:'fixture-school',code:'UJI',name:'Sekolah Fixture'},teachers:[],assessments:[],members:[{id:'admin',role:'admin',active:1},{id:'p1',role:'member',active:1},{id:'p2',role:'member',active:1},{id:'review',role:'member',active:1},{id:'inactive',role:'member',active:0}],audit:[],sessions:[],invitations:[],imports:[]});
 const d=fixture(),who=id=>d.members.find(m=>m.id===id),call=(id,b)=>R.resourcesCommand(d,who(id),{year:2026,...b});const denied=(id,b,status)=>{const before=structuredClone(d);assert.throws(()=>call(id,b),e=>e.status===status);assert.deepEqual(d,before);};
@@ -37,4 +37,28 @@ const rubrics=JSON.parse(fs.readFileSync('app/management-rubric.json','utf8'));f
  boss.teacherId='head';doc.teachers.push({id:'head',position:'GURU BESAR'});doc.assessments=['kendiri','pertama','kedua'].map((stage,i)=>({id:'qa-'+i,teacherId:'head',year:2026,stage,status:'submitted',revision:1}));
  const before=R.resourcesView(doc,boss,2026);assert.equal(before.standard4.status,'submitted');command({action:'verify-standard4',signature:before.standard4.signature});assert.equal(R.resourcesView(doc,boss,2026).standard4.status,'verified');doc.assessments[0].revision++;assert.equal(R.resourcesView(doc,boss,2026).standard4.status,'submitted');doc.assessments[0].status='draft';assert.equal(R.resourcesView(doc,boss,2026).standard4.status,'draft');
  console.log('PASS school lists and Standard 4: admin authorization, stale revision, year isolation, PGB identity and invalidation after assessment changes.');
+}
+
+{
+ const doc=fixture(),boss=doc.members[0],cmd=b=>R.resourcesCommand(doc,boss,{year:2026,...b});
+ const modules={strength:'https://drive.google.com/drive/folders/STRENGTH_ROOT_123',management:'https://drive.google.com/drive/folders/MANAGEMENT_ROOT_123',achievement:'https://drive.google.com/drive/folders/ACHIEVEMENT_ROOT_123',standard4:'https://drive.google.com/drive/folders/PDPC_ROOT_123'};
+ cmd({action:'settings',revision:0,settings:{...settings,clientId:'',apiKey:'',projectNumber:'',moduleFolders:modules}});
+ assert.deepEqual(R.resourcesView(doc,boss,2026).settings.moduleFolders,modules,'Folder-only settings need no Google credentials');
+ const before=structuredClone(doc);assert.throws(()=>cmd({action:'settings',revision:1,settings:{...settings,moduleFolders:{...modules,standard4:'javascript:alert(1)'}}}),e=>e.status===400);assert.deepEqual(doc,before,'Invalid module must leave all folders unchanged');
+ cmd({action:'settings',revision:1,settings:{...settings,moduleFolders:modules}});
+ for(const [module,aspect] of [['strength','A1'],['management','1.1.1'],['achievement','5.1.1']]){
+  const ticket=cmd({action:'reserve-upload',module,aspect,extension:'pdf',size:5}).upload;
+  assert.equal(ticket.root,new URL(modules[module]).pathname.split('/').pop());assert.equal(ticket.moduleRoot,true);
+  const year=cmd({action:'folder-id',uploadId:ticket.id,level:'year',candidate:'YEAR_FOLDER_'+module});assert.equal(year.parent,ticket.root);
+  const part=cmd({action:'folder-id',uploadId:ticket.id,level:'aspect',candidate:'ASPECT_FOLDER_'+module});assert.equal(part.parent,year.id);
+ }
+ doc.teachers=[{id:'test-teacher',name:'Fixture Teacher',position:'GAB',type:'perdana'},{id:'leader',name:'Fixture Leader',position:'PK',type:'perdana'}];doc.members[1].teacherId='leader';doc.members[2].teacherId='test-teacher';doc.pdpc={version:2,epoch:'current-fixture',revision:1,assignments:{2026:[{teacherId:'test-teacher',observerId:'teacher:leader',reviewerId:null}]}};
+ const upload={action:'reserve-upload',year:2026,module:'standard4',aspect:'test-teacher',stage:'pertama',epoch:'current-fixture',extension:'jpg',size:10};
+ const observer=doc.members[1],teacher=doc.members[2],ticket=R.resourcesCommand(doc,observer,upload).upload;assert.equal(ticket.root,'PDPC_ROOT_123');assert.ok(ticket.name.startsWith('4.test-teacher.pertama('));
+ for(const [actor,extra,status] of [[boss,{},403],[teacher,{},403],[observer,{epoch:'old'},409],[observer,{stage:'kedua'},403],[observer,{year:2025},403]]){const snapshot=structuredClone(doc);assert.throws(()=>R.resourcesCommand(doc,actor,{...upload,...extra}),e=>e.status===status);assert.deepEqual(doc,snapshot);}
+ assert.equal(R.resourcesCommand(doc,teacher,{...upload,stage:'kendiri'}).upload.root,'PDPC_ROOT_123');
+ doc.assessments.push({id:'submitted',teacherId:'test-teacher',stage:'pertama',year:2026,status:'submitted'});assert.throws(()=>R.resourcesCommand(doc,observer,upload),e=>e.status===409);assert.throws(()=>R.resourcesCommand(doc,observer,{action:'folder-id',year:2026,uploadId:ticket.id,level:'year',candidate:'LATE_YEAR_FOLDER'}),e=>e.status===409);
+ cmd({action:'settings',revision:2,settings:{...settings,moduleFolders:{...modules,management:'https://drive.google.com/drive/folders/CHANGED_ROOT_123'}}});
+ const old=doc.resources.reservations.find(r=>r.module==='management');assert.throws(()=>cmd({action:'folder-id',uploadId:old.id,level:'year',candidate:'OLD_YEAR_FOLDER'}),e=>e.status===409);
+ console.log('PASS four module roots: folder-only saves, atomic validation, direct year/aspect routing, stale-root rejection, Standard 4 observer/self permissions, locked records, reset epoch and year boundaries.');
 }
