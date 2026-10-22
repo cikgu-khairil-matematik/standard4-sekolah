@@ -5,6 +5,6 @@ import type {RosterInfo} from './roster-ui';
 import type {StrengthBundle,PendingStrength} from '../migration/backend/strength-model';
 import type {ManagementBundle,PendingManagement} from '../migration/backend/management-model';
 export type {AppSession};
-export type AppData={pdpc?:import('./pdpc-ui').PdpcConfig;teachers:Teacher[];assessments:Assessment[];rosterInfo:RosterInfo|null;session:AppSession};
+export type AppData={rosterRevision?:number;pdpc?:import('./pdpc-ui').PdpcConfig;teachers:Teacher[];assessments:Assessment[];rosterInfo:RosterInfo|null;session:AppSession};
 export type PendingDraft={assessment:Assessment;teacherName:string;error?:string;server?:Assessment|null};
 export type OfflineSnapshot={data:AppData;pending:PendingDraft[];savedAt:string;offlineUntil:string;achievementCache?:Record<string,AchievementBundle>;achievementPending?:PendingAchievement[];managementCache?:Record<string,ManagementBundle>;managementPending?:PendingManagement[];strengthCache?:Record<string,StrengthBundle>;strengthPending?:PendingStrength[]};

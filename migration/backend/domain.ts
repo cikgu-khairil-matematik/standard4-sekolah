@@ -1,6 +1,6 @@
-import {calculate,normalized,stages,type Assessment,type TeacherType} from './scoring.ts';
+import {calculate,normalized,stages,cleanTeacherRosterRow,type Assessment,type TeacherType} from './scoring.ts';
 export type Row=Record<string,any>;
-export type SchoolDoc={school:Row;staff?:Row[];teachers:Row[];assessments:Row[];members:Row[];invitations:Row[];imports:Row[];audit:Row[];sessions:Row[];pdpc?:{version:number;epoch:string;revision:number;assignments:Record<string,Row[]>;resetAt?:string}};
+export type SchoolDoc={rosterRevision?:number;school:Row;staff?:Row[];teachers:Row[];assessments:Row[];members:Row[];invitations:Row[];imports:Row[];audit:Row[];sessions:Row[];pdpc?:{version:number;epoch:string;revision:number;assignments:Record<string,Row[]>;resetAt?:string}};
 export class ApiError extends Error {constructor(message:string,public status=400,public details:Row={}){super(message);}}
 export function fail(s:string,status=400,details:Row={}):never{throw new ApiError(s,status,details);}
 export const now=()=>new Date().toISOString();
@@ -45,7 +45,7 @@ export function assignmentPeople(d:SchoolDoc){return [
 export function mayView(d:SchoolDoc,m:Row,t:Row){if(d.pdpc?.version===2)return m.role==='admin'||t.id===m.teacherId||Object.values(d.pdpc.assignments).flat().some(r=>r.teacherId===t.id&&(assignedTo(d,r.observerId,m.id)||assignedTo(d,r.reviewerId,m.id)));const o=own(d,m);return m.role==='admin'||t.id===m.teacherId||!!o&&(normalized(t.pp1)===normalized(o.name)||normalized(t.pp2)===normalized(o.name));}
 export function mayWrite(d:SchoolDoc,m:Row,t:Row,stage:string,year?:number){if(d.pdpc?.version===2){if(!stages.includes(stage as typeof stages[number]))return false;if(stage==='kendiri')return t.id===m.teacherId;return (d.pdpc.assignments[String(year)]??[]).some(r=>r.teacherId===t.id&&eligibleScoreAssignee(d,r.observerId,true)&&assignedTo(d,r.observerId,m.id));}if(m.role==='admin')return true;if(stage==='kendiri')return t.id===m.teacherId;const o=own(d,m);return !!o&&normalized(stage==='pertama'?t.pp1:t.pp2)===normalized(o.name);}
 export function audit(d:SchoolDoc,m:Row,action:string,id:string,before:unknown,after:unknown){d.audit.push({id:crypto.randomUUID(),schoolId:d.school.id,actorId:m.id,action,entityId:id,before:before==null?null:JSON.stringify(before),after:after==null?null:JSON.stringify(after),createdAt:now()});}
-export function getData(d:SchoolDoc,m:Row){const teachers=d.teachers.filter(t=>mayView(d,m,t)),ids=new Set(teachers.map(t=>t.id));return {teachers,assessments:d.assessments.filter(a=>ids.has(a.teacherId)),rosterInfo:[...d.imports].sort((a,b)=>b.importedAt.localeCompare(a.importedAt))[0]??null,session:session(d,m),pdpc:d.pdpc?{...d.pdpc,assignments:Object.fromEntries(Object.entries(d.pdpc.assignments).map(([y,rows])=>[y,rows.filter(r=>ids.has(r.teacherId))])),people:assignmentPeople(d)}:undefined};}
+export function getData(d:SchoolDoc,m:Row){const teachers=d.teachers.filter(t=>mayView(d,m,t)),ids=new Set(teachers.map(t=>t.id));return {rosterRevision:d.rosterRevision??0,teachers:teachers.map(t=>{const copy={...t};if(m.role!=='admin'&&t.id!==m.teacherId)delete copy.ic;return copy;}),assessments:d.assessments.filter(a=>ids.has(a.teacherId)),rosterInfo:[...d.imports].sort((a,b)=>b.importedAt.localeCompare(a.importedAt))[0]??null,session:session(d,m),pdpc:d.pdpc?{...d.pdpc,assignments:Object.fromEntries(Object.entries(d.pdpc.assignments).map(([y,rows])=>[y,rows.filter(r=>ids.has(r.teacherId))])),people:assignmentPeople(d)}:undefined};}
 function roster(v:Row){if(!v||!['perdana','khas'].includes(v.type))fail('Kategori guru tidak sah.');const r:Row={name:text(v.name),type:v.type};for(const f of ['pp1','pp2','position','grade','session'])if(v[f]!==undefined){if(typeof v[f]!=='string'||v[f].length>180)fail('Maklumat guru tidak sah.');r[f]=v[f].trim();}if(v.sourceNumber!==undefined){if(!Number.isInteger(v.sourceNumber)||v.sourceNumber<0||v.sourceNumber>10000)fail('Nombor rujukan tidak sah.');r.sourceNumber=v.sourceNumber;}return r;}
 function revoke(d:SchoolDoc,ids:string[]){d.sessions=d.sessions.filter(s=>!ids.includes(s.memberId));}
 export function dataCommand(d:SchoolDoc,m:Row,b:Row){
@@ -61,19 +61,37 @@ export function dataCommand(d:SchoolDoc,m:Row,b:Row){
   const before=structuredClone(a);Object.assign(a,{status:b.decision==='verify'?'verified':'draft',feedback:b.decision==='verify'?'':b.feedback.trim(),verifiedBy:b.decision==='verify'?m.id:null,verifiedAt:b.decision==='verify'?now():null,revision:a.revision+1,mutationId:'',updatedAt:now()});audit(d,m,'pdpc_'+b.decision,a.id,before,a);return {assessment:a};
  }
 
+ if(b.action==='import-roster'){
+  admin(m);if(b.rosterRevision!==(d.rosterRevision??0))fail('Senarai guru telah berubah. Muat semula dan semak import sekali lagi.',409);
+  if(!Array.isArray(b.teachers)||!b.teachers.length||b.teachers.length>500)fail('Import antara 1 hingga 500 guru.');
+  let rows:ReturnType<typeof cleanTeacherRosterRow>[];try{rows=b.teachers.map(cleanTeacherRosterRow);}catch(e){fail((e as Error).message);}
+  const names=new Set<string>(),ics=new Set<string>(),targets=new Set<string>();
+  const plan=rows!.map(v=>{
+   const key=normalized(v.name);if(names.has(key)||v.ic&&ics.has(v.ic))fail('Nama atau No. IC berulang dalam fail.');names.add(key);if(v.ic)ics.add(v.ic);
+   const byId=v.id?d.teachers.find(t=>t.id===v.id):undefined,byIC=v.ic?d.teachers.find(t=>t.ic===v.ic):undefined,byName=d.teachers.find(t=>normalized(t.name)===key);
+   if(v.id&&!byId)fail('ID guru tidak ditemui. Muat turun senarai terkini.',409);
+   const found=[byId,byIC,byName].filter(Boolean) as Row[];if(new Set(found.map(t=>t.id)).size>1)fail('Nama, ID dan No. IC merujuk kepada guru berlainan.',409);
+   const t=found[0];if(t){if(targets.has(t.id))fail('Dua baris merujuk kepada guru yang sama.');targets.add(t.id);if(t.type!==v.type&&d.assessments.some(a=>a.teacherId===t.id))fail('Kategori '+v.name+' tidak boleh diubah selepas penilaian disimpan.',409);}
+   return {v,t};
+  });
+  let added=0,updated=0;
+  for(const {v,t} of plan){const {id,...metadata}=v;if(t){const old=t.name;Object.assign(t,metadata,{normalized:normalized(v.name)});if(old!==v.name){for(const x of d.teachers){if(x.pp1===old)x.pp1=v.name;if(x.pp2===old)x.pp2=v.name;}for(const x of d.members)if(x.teacherId===t.id)x.displayName=v.name;}updated++;}else{d.teachers.push({id:crypto.randomUUID(),schoolId:d.school.id,createdAt:now(),normalized:normalized(v.name),pp1:'',pp2:'',position:'',grade:'',session:'',sourceNumber:0,...metadata});added++;}}
+  d.rosterRevision=(d.rosterRevision??0)+1;const result={added,updated,skipped:0};
+  d.imports.push({id:crypto.randomUUID(),schoolId:d.school.id,importedAt:now(),filename:'Import Excel senarai guru',rowCount:rows!.length});audit(d,m,'roster_imported',d.school.id,null,result);return result;
+ }
  if(['reset-marks','reset-all','delete-teacher','import','teacher','reopen'].includes(b.action))admin(m);
  if(b.action==='import'){
   if(!Array.isArray(b.teachers)||!b.teachers.length||b.teachers.length>500)fail('Import antara 1 hingga 500 guru.');const rows=b.teachers.map(roster);let added=0,updated=0;
   for(const v of rows){let t=d.teachers.find(t=>t.normalized===normalized(v.name));if(t){const {type,...metadata}=v;Object.assign(t,metadata);updated++;}else{t={id:crypto.randomUUID(),schoolId:d.school.id,normalized:normalized(v.name),createdAt:now(),pp1:'',pp2:'',position:'',grade:'',session:'',sourceNumber:0,...v};d.teachers.push(t);added++;}}
-  const result={added,updated,skipped:0};d.imports.push({id:crypto.randomUUID(),schoolId:d.school.id,importedAt:now(),filename:'Import senarai guru (CSV / tampalan)',rowCount:rows.length});audit(d,m,'roster_imported',d.school.id,null,result);return result;
+  d.rosterRevision=(d.rosterRevision??0)+1;const result={added,updated,skipped:0};d.imports.push({id:crypto.randomUUID(),schoolId:d.school.id,importedAt:now(),filename:'Import senarai guru (CSV / tampalan)',rowCount:rows.length});audit(d,m,'roster_imported',d.school.id,null,result);return result;
  }
  if(b.action==='teacher'){
-  const t=d.teachers.find(t=>t.id===b.id);if(!t)fail('Guru tidak ditemui.',404);const v=roster(b);if(t.type!==v.type&&d.assessments.some(a=>a.teacherId===t.id))fail('Kategori tidak boleh diubah selepas penilaian disimpan.');const key=normalized(v.name);if(d.teachers.some(x=>x.id!==t.id&&x.normalized===key))fail('Nama guru telah digunakan.',409);const before=structuredClone(t),oldName=t.name;Object.assign(t,v,{normalized:key});if(oldName!==v.name){for(const x of d.teachers){if(x.pp1===oldName)x.pp1=v.name;if(x.pp2===oldName)x.pp2=v.name;}for(const x of d.members)if(x.teacherId===t.id)x.displayName=v.name;}audit(d,m,'teacher_updated',t.id,before,t);return {ok:true};
+  const t=d.teachers.find(t=>t.id===b.id);if(!t)fail('Guru tidak ditemui.',404);const v=roster(b);if(t.type!==v.type&&d.assessments.some(a=>a.teacherId===t.id))fail('Kategori tidak boleh diubah selepas penilaian disimpan.');const key=normalized(v.name);if(d.teachers.some(x=>x.id!==t.id&&x.normalized===key))fail('Nama guru telah digunakan.',409);const before=structuredClone(t),oldName=t.name;Object.assign(t,v,{normalized:key});if(oldName!==v.name){for(const x of d.teachers){if(x.pp1===oldName)x.pp1=v.name;if(x.pp2===oldName)x.pp2=v.name;}for(const x of d.members)if(x.teacherId===t.id)x.displayName=v.name;}d.rosterRevision=(d.rosterRevision??0)+1;audit(d,m,'teacher_updated',t.id,before,t);return {ok:true};
  }
  if(['reset-marks','reset-all','delete-teacher'].includes(b.action)){
   const phrase=b.action==='reset-marks'?'RESET MARKAH':b.action==='reset-all'?'RESET SEMUA':'PADAM GURU';if(b.confirmation!==phrase)fail('Taip frasa pengesahan yang ditetapkan.');
   if(b.action==='reset-marks'){if(!Number.isInteger(b.year)||b.year<2020||b.year>2100)fail('Tahun tidak sah.');const old=structuredClone(d.assessments.filter(a=>a.year===b.year));for(const a of d.assessments.filter(a=>a.year===b.year))Object.assign(a,{scores:Array(38).fill(null),total:null,status:'draft',mutationId:'',revision:a.revision+1,updatedAt:now()});audit(d,m,'assessment_year_reset',String(b.year),old,null);return {assessments:d.assessments.filter(a=>a.year===b.year)};}
-  const targets=b.action==='delete-teacher'?d.teachers.filter(t=>t.id===b.teacherId):d.teachers;if(b.action==='delete-teacher'&&!targets.length)fail('Guru tidak ditemui.',404);const ids=new Set(targets.map(t=>t.id)),before={teachers:structuredClone(targets),assessments:d.assessments.filter(a=>ids.has(a.teacherId))};
+  const targets=b.action==='delete-teacher'?d.teachers.filter(t=>t.id===b.teacherId):d.teachers;if(b.action==='delete-teacher'&&!targets.length)fail('Guru tidak ditemui.',404);d.rosterRevision=(d.rosterRevision??0)+1;const ids=new Set(targets.map(t=>t.id)),before={teachers:structuredClone(targets),assessments:d.assessments.filter(a=>ids.has(a.teacherId))};
   d.assessments=d.assessments.filter(a=>!ids.has(a.teacherId));d.teachers=d.teachers.filter(t=>!ids.has(t.id));const changed:string[]=[];for(const x of d.members)if(ids.has(x.teacherId)){x.teacherId=null;if(x.role!=='admin')x.active=0;if(b.action==='delete-teacher'||x.role!=='admin')changed.push(x.id);}revoke(d,changed);audit(d,m,b.action==='delete-teacher'?'teacher_deleted':'school_data_reset',b.teacherId||d.school.id,before,null);return {ok:true};
  }
  if(b.action==='reopen'){if(d.pdpc?.version===2)fail('Gunakan semakan oleh pegawai penyemak yang ditugaskan.',403);const a=d.assessments.find(a=>a.id===b.id);if(!a)fail('Penilaian tidak ditemui.',404);const before=structuredClone(a);Object.assign(a,{status:'draft',mutationId:'',revision:a.revision+1,updatedAt:now()});audit(d,m,'assessment_reopened',a.id,before,a);return {assessment:a};}

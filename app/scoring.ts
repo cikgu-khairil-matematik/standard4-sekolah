@@ -1,7 +1,20 @@
 import source from './rubric.json';
 export type TeacherType = 'perdana'|'khas';
 export type Stage = 'kendiri'|'pertama'|'kedua';
-export type Teacher = {id:string;name:string;type:TeacherType;pp1:string;pp2:string;position:string;grade:string;session:string;sourceNumber:number};
+export type Teacher = {id:string;name:string;type:TeacherType;pp1:string;pp2:string;position:string;grade:string;session:string;sourceNumber:number;gender?:string;ic?:string;status?:string;whereabouts?:string};
+export type TeacherRosterRow=Pick<Teacher,'name'|'type'>&Partial<Pick<Teacher,'id'|'position'|'grade'|'session'|'sourceNumber'|'gender'|'ic'|'status'|'whereabouts'>>;
+export function cleanTeacherRosterRow(input:unknown):TeacherRosterRow{
+ if(!input||typeof input!=='object')throw new Error('Baris guru tidak sah.');
+ const v=input as Record<string,unknown>,r:Record<string,unknown>={};
+ for(const f of ['id','name','position','grade','session','gender','ic','status','whereabouts'])if(v[f]!==undefined){if(typeof v[f]!=='string'||(v[f] as string).length>180)throw new Error('Maklumat '+f+' tidak sah.');r[f]=(v[f] as string).trim().replace(/\s+/g,' ');}
+ if(typeof r.name!=='string'||r.name.length<3||/^\d+$/.test(r.name))throw new Error('Nama guru perlu sekurang-kurangnya 3 aksara.');
+ if(!['perdana','khas'].includes(String(v.type)))throw new Error('Pilih kategori Perdana atau Pendidikan Khas.');r.type=v.type;
+ if(r.ic){r.ic=String(r.ic).replace(/[-\s]/g,'');if(!/^\d{12}$/.test(String(r.ic)))throw new Error('No. IC perlu 12 digit.');}
+ if(r.gender){r.gender=String(r.gender).toUpperCase();if(!['L','P'].includes(String(r.gender)))throw new Error('Jantina mestilah L atau P.');}
+ if(r.session){r.session=String(r.session).toUpperCase();if(!['PAGI','PETANG'].includes(String(r.session)))throw new Error('Sesi mestilah PAGI atau PETANG.');}
+ if(v.sourceNumber!==undefined){if(!Number.isInteger(v.sourceNumber)||Number(v.sourceNumber)<0||Number(v.sourceNumber)>10000)throw new Error('Bilangan tidak sah.');r.sourceNumber=v.sourceNumber;}
+ return r as TeacherRosterRow;
+}
 export type RosterInput={name:string;type:TeacherType;pp1?:string;pp2?:string;position?:string;grade?:string;session?:string;sourceNumber?:number};
 export type Assessment = {id:string;teacherId:string;year:number;stage:Stage;status:'draft'|'submitted'|'verified';epoch?:string;feedback?:string;verifiedAt?:string;verifiedBy?:string;scores:(number|null)[];evaluator:string;date:string;subject:string;classroom:string;notes:string;evidence?:string[];total:string|null;revision:number;updatedAt:string;mutationId?:string;localPending?:boolean};
 export const stages:Stage[]=['kendiri','pertama','kedua'];
