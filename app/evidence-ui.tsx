@@ -3,6 +3,7 @@ import {useEffect,useRef,useState} from 'react';
 import {Upload,Plus,Trash2,FolderOpen,Info} from 'lucide-react';
 import {preloadDrive,prepareDrive,resourcesAPI,uploadDriveEvidence,type EvidenceModule} from './drive-evidence';
 let activeUploads=0;export const uploadsActive=()=>activeUploads>0;
+export function useUploadsActive(){const [active,setActive]=useState(uploadsActive);useEffect(()=>{const update=()=>setActive(uploadsActive());window.addEventListener('skas-upload-status',update);update();return()=>window.removeEventListener('skas-upload-status',update);},[]);return active;}
 export function Pilot({filled,status,dirty=false,compact=false}:{filled:boolean;status:string;dirty?:boolean;compact?:boolean}){const color=!filled?'red':dirty||['draft','returned'].includes(status)?'yellow':'green',text=color==='red'?'Belum diisi':color==='yellow'?'Draf / belum dihantar':'Telah dihantar';return <span className={'pilot '+color+(compact?' pilot-compact':'')} role="img" aria-label={text} title={text}><i aria-hidden="true"/>{!compact&&text}</span>;}
 export function PilotLegend(){return <p className="pilot-legend"><Pilot filled={false} status="draft"/><Pilot filled status="draft"/><Pilot filled status="submitted"/></p>;}
 export function EvidenceInput({urls,onChange,year,module,aspect,actionId,stage,epoch,disabled=false,label='Evidens'}:{urls:string[];onChange:(v:string[])=>void;year:number;module:EvidenceModule;aspect:string;actionId?:string;stage?:string;epoch?:string;disabled?:boolean;label?:string}){

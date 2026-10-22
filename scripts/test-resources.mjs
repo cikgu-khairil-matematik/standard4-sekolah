@@ -62,3 +62,18 @@ const rubrics=JSON.parse(fs.readFileSync('app/management-rubric.json','utf8'));f
  const old=doc.resources.reservations.find(r=>r.module==='management');assert.throws(()=>cmd({action:'folder-id',uploadId:old.id,level:'year',candidate:'OLD_YEAR_FOLDER'}),e=>e.status===409);
  console.log('PASS four module roots: folder-only saves, atomic validation, direct year/aspect routing, stale-root rejection, Standard 4 observer/self permissions, locked records, reset epoch and year boundaries.');
 }
+
+{
+ const Gate=await import(compile(fs.readFileSync('app/submission-state.ts','utf8')));
+ const ready={saved:true,dirty:false,pending:false,online:true,uploading:false};
+ const data={...M.emptyManagementData(),scores:{a:0,b:0,c:0,d:0},notes:'',evidence:[]};
+ const check=(v,state={})=>Gate.submissionBlocker({...ready,...state,issues:Gate.validatedSubmissionIssues(v,x=>M.cleanManagementData('1.1.1',x),x=>M.managementIssues('1.1.1',x))});
+ assert.ok(check(data),'Complete zero scores cannot bypass missing evidence');
+ assert.ok(check({...data,evidence:['  ']}),'Whitespace evidence cannot enable Send');
+ assert.ok(check({...data,evidence:['javascript:alert(1)']}),'Invalid URLs cannot enable Send');
+ const partial={...data,actionEvidence:{a:{documents:[],notes:'',urls:['https://example.test/action-a']}}};assert.ok(check(partial),'All required actions need supporting evidence');
+ const complete={...data,evidence:['https://example.test/common-proof']};assert.equal(check(complete),'','Saved general evidence explicitly supports all actions');
+ for(const state of [{saved:false},{dirty:true},{pending:true},{online:false},{uploading:true}])assert.ok(check(complete,state),'Evidence completion alone cannot bypass draft/sync/upload state');
+ assert.ok(check({...complete,evidence:[]}),'Deleting the last evidence disables Send again');
+ console.log('PASS submission gating: complete zero scores, missing/blank/invalid/partial evidence, saved general evidence, unsaved changes, offline queue, upload in progress and deleted evidence.');
+}
