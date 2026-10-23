@@ -1,6 +1,6 @@
 import {achievementCommand,achievementView} from './achievement-api.ts';
 import {createClient} from 'npm:@supabase/supabase-js@2.102.0';
-import {ApiError,fail,text,code,username,password,secret,hash,now,actor,session,audit,getData,dataCommand,getSchool,schoolCommand,type SchoolDoc,type Row} from './domain.ts';
+import {ApiError,fail,text,code,username,password,secret,hash,now,actor,session,audit,getData,dataCommand,getSchool,schoolCommand,initializePdpc,type SchoolDoc,type Row} from './domain.ts';
 import {resourcesCommand,resourcesView} from './resources-api.ts';
 import {strengthCommand,strengthView} from './strength-api.ts';
 import {managementCommand,managementView} from './management-api.ts';
@@ -15,8 +15,8 @@ async function auth(path:string,b:Row,access?:string){const r=await fetch(url+'/
 async function email(uid:string){const {data,error}=await db.auth.admin.getUserById(uid);if(error||!data.user?.email)fail('Akaun belum dapat disahkan.',401);return data.user.email;}
 async function signIn(uid:string,pw:string){return auth('token?grant_type=password',{email:await email(uid),password:pw});}
 function tokens(t:Row,sid:string,d:SchoolDoc,m:Row){return {accessToken:t.access_token,refreshToken:t.refresh_token,sid,schoolId:d.school.id};}
-async function newSession(row:Row,m:Row,t:Row){const sid=secret();row.data.sessions.push({hash:await hash(sid),memberId:m.id,expiresAt:new Date(Date.now()+604800000).toISOString()});await commit(row);return {session:session(row.data,m),tokens:tokens(t,sid,row.data,m)};}
-async function requireUser(req:Request,b:Row){const token=req.headers.get('authorization')?.replace(/^Bearer /i,'');if(!token)fail('Sila log masuk dahulu.',401);const {data,error}=await db.auth.getUser(token);if(error||!data.user)fail('Sesi telah tamat. Log masuk semula.',401);if(typeof b.schoolId!=='string'||typeof b.sid!=='string'||!/^[a-f0-9]{64}$/.test(b.sid))fail('Sesi tidak sah.',401);const row=await load(b.schoolId);if(!row)fail('Akaun tidak ditemui.',401);const m=actor(row.data,data.user.id,await hash(b.sid));if(b.expected&&m.id!==b.expected)fail('Akaun pada pelayar telah berubah. Log masuk semula.',409);return {row,m,uid:data.user.id,token};}
+async function newSession(row:Row,m:Row,t:Row){const sid=secret();initializePdpc(row.data);row.data.sessions.push({hash:await hash(sid),memberId:m.id,expiresAt:new Date(Date.now()+604800000).toISOString()});await commit(row);return {session:session(row.data,m),tokens:tokens(t,sid,row.data,m)};}
+async function requireUser(req:Request,b:Row){const token=req.headers.get('authorization')?.replace(/^Bearer /i,'');if(!token)fail('Sila log masuk dahulu.',401);const {data,error}=await db.auth.getUser(token);if(error||!data.user)fail('Sesi telah tamat. Log masuk semula.',401);if(typeof b.schoolId!=='string'||typeof b.sid!=='string'||!/^[a-f0-9]{64}$/.test(b.sid))fail('Sesi tidak sah.',401);const row=await load(b.schoolId);if(!row)fail('Akaun tidak ditemui.',401);const m=actor(row.data,data.user.id,await hash(b.sid));if(b.expected&&m.id!==b.expected)fail('Akaun pada pelayar telah berubah. Log masuk semula.',409);if(initializePdpc(row.data)){await commit(row);row.revision++;}return {row,m,uid:data.user.id,token};}
 async function sessionRoute(req:Request,b:Row){const v=b.body||{},action=v.action;
  if(b.method==='GET'){
   if(!b.schoolId||!b.sid)return {session:null,configured:true};
@@ -33,6 +33,7 @@ async function sessionRoute(req:Request,b:Row){const v=b.body||{},action=v.actio
  if(action==='register-school'){
   const id=crypto.randomUUID(),m={id:crypto.randomUUID(),schoolId:id,username:u,authUserId:null as string|null,teacherId:null,displayName:text(v.displayName),role:'admin',active:1,mustChangePassword:0,createdAt:now()};
   const d:SchoolDoc={school:{id,code:c,name:text(v.schoolName,5,160),createdAt:now()},teachers:[],assessments:[],members:[m],invitations:[],imports:[],audit:[],sessions:[]};
+  initializePdpc(d);
   const {error}=await db.from('s4_schools').insert({id,code:c,data:d,revision:1,enabled:true});if(error){if(error.code==='23505')fail('Kod sekolah telah digunakan.',409);fail('Ruang sekolah belum dapat disediakan.',503);}
   const created=await db.auth.admin.createUser({email:crypto.randomUUID()+'@standard4.invalid',password:pw,email_confirm:true});if(created.error||!created.data.user){await db.from('s4_schools').delete().eq('id',id).eq('revision',1);fail('Akaun belum dapat disediakan.',503);}
   const uid=created.data.user.id as string;m.authUserId=uid;const row={id,revision:1,data:d};audit(d,m,'school_registered',id,null,{code:c,name:d.school.name});return newSession(row,m,await signIn(uid,pw));
