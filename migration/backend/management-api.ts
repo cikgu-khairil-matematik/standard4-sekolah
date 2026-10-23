@@ -1,11 +1,11 @@
-import {calculate,stages,type TeacherType} from './scoring.ts';
-import {scoreEntry,isPGB,admin,audit,fail,now,assignmentPeople,assignmentIdentity,assignedMember,assignedTo,eligiblePPSAssignee,type Row,type SchoolDoc} from './domain.ts';
+import {calculate,rosterActive,stages,type TeacherType} from './scoring.ts';
+import {scoreEntry,isPGB,admin,audit,fail,now,assignmentPeople,eligibleReviewAssignee,assignmentIdentity,assignedMember,assignedTo,eligiblePPSAssignee,type Row,type SchoolDoc} from './domain.ts';
 import {MANAGEMENT_UNITS,emptyManagementRecord,cleanManagementData,managementIssues,validManagementUnit,validYear,defaultReportNotes,cleanReportNotes,mean,type ReportNotes,type SchoolReport,type PdpcSummary,type ManagementRecord,type ManagementBundle,type ManagementUnitId} from './management-model.ts';
 type Store=SchoolDoc&{management?:Record<string,Partial<Record<ManagementUnitId,ManagementRecord>>>;managementReports?:Record<string,ReportNotes>};
 function permissions(d:SchoolDoc,m:Row,r:ManagementRecord){const canAdmin=m.role==='admin',writer=assignedTo(d,r.assigneeId,m.id)||(r.pssIds??[]).some(id=>assignedTo(d,id,m.id)),reviewer=assignedTo(d,r.reviewerId,m.id);return {canAdmin,canRead:canAdmin||writer||reviewer,canEdit:(canAdmin||writer)&&['draft','returned'].includes(r.status),canReview:(canAdmin||reviewer)&&r.status==='submitted'&&!writer&&(r as unknown as Row).lastEditorId!==m.id};}
 function record(d:Store,aspect:ManagementUnitId,year:number):ManagementRecord{return structuredClone(d.management?.[String(year)]?.[aspect]??emptyManagementRecord(aspect,year));}
 export function scoringReport(d:SchoolDoc,year:number):SchoolReport{
- const teachers=new Map(d.teachers.map(t=>[t.id,t]));
+ const teachers=new Map(d.teachers.filter(t=>rosterActive(t,year)||d.assessments.some(a=>a.teacherId===t.id&&a.year===year)).map(t=>[t.id,t]));
  const pdpc={} as SchoolReport['pdpc'];
  for(const scope of ['submitted','all'] as const){
   pdpc[scope]={} as SchoolReport['pdpc']['all'];
@@ -23,7 +23,7 @@ export function scoringReport(d:SchoolDoc,year:number):SchoolReport{
 export function managementView(d:SchoolDoc,m:Row,year:number):ManagementBundle{
  if(!d.members.some(x=>x.id===m.id&&x.active===1))fail('Akses akaun tidak aktif.',403);
  if(!validYear(year))fail('Pilih tahun antara 2020–2100.');
- return {year,isPGB:isPGB(d,m),records:MANAGEMENT_UNITS.map(a=>{const r=record(d,a.id,year),p=permissions(d,m,r),hasEntry=scoreEntry(r.data);if(!p.canRead){r.data=emptyManagementRecord(a.id,year).data;r.feedback='';}delete r.lastMutationId;delete r.lastMutationActor;return {...r,...p,hasEntry};}),people:assignmentPeople(d),school:{code:d.school.code,name:d.school.name},sessionId:m.id,...(m.role==='admin'?{report:scoringReport(d,year)}:{})};
+ return {year,isPGB:isPGB(d,m),records:MANAGEMENT_UNITS.map(a=>{const r=record(d,a.id,year),p=permissions(d,m,r),hasEntry=scoreEntry(r.data);if(!p.canRead){r.data=emptyManagementRecord(a.id,year).data;r.feedback='';}delete r.lastMutationId;delete r.lastMutationActor;return {...r,...p,hasEntry};}),people:assignmentPeople(d,year),school:{code:d.school.code,name:d.school.name},sessionId:m.id,...(m.role==='admin'?{report:scoringReport(d,year)}:{})};
 }
 export function managementCommand(d:SchoolDoc,m:Row,b:Row):ManagementBundle{
  if(!d.members.some(x=>x.id===m.id&&x.active===1))fail('Akses akaun tidak aktif.',403);
@@ -53,10 +53,10 @@ export function managementCommand(d:SchoolDoc,m:Row,b:Row):ManagementBundle{
  if(!Number.isInteger(b.revision)||b.revision!==r.revision)fail('Rekod telah berubah. Muat semula dan semak perubahan sebelum menyimpan.',409,{record:{...r,...p}});
  if(b.action==='assign'){
   if(['submitted','verified'].includes(r.status))fail('Buka semula borang sebelum menukar penugasan.',409);
-  const eligible=(id:unknown)=>id===null||typeof id==='string'&&d.members.some(x=>x.id===id&&x.active===1);
-  if(b.assigneeId!==null&&!eligiblePPSAssignee(d,b.assigneeId))fail('Pilih pengisi daripada senarai guru dan AKP sekolah.');if(!eligible(b.reviewerId))fail('Pilih penyemak daripada akaun aktif sekolah.',400);
+  const eligible=(id:unknown)=>id===null||typeof id==='string'&&eligibleReviewAssignee(d,id,b.year);
+  if(b.assigneeId!==null&&!eligiblePPSAssignee(d,b.assigneeId,b.year))fail('Pilih pengisi daripada senarai guru dan AKP sekolah.');if(!eligible(b.reviewerId))fail('Pilih penyemak daripada akaun aktif sekolah.',400);
   if(b.assigneeId&&assignedTo(d,b.assigneeId,b.reviewerId))fail('Pengisi dan penyemak mesti orang yang berbeza.');
-  const pss=b.pssIds??(b.assigneeId?[b.assigneeId]:[]);if(!Array.isArray(pss)||pss.length>50||new Set(pss.map((id:string)=>typeof id==='string'?assignmentIdentity(d,id):id)).size!==pss.length||pss.some((id:unknown)=>!eligiblePPSAssignee(d,id))||pss.some((id:string)=>assignedTo(d,id,b.reviewerId))||b.assigneeId&&!pss.includes(b.assigneeId))fail('Pilih PPS daripada senarai guru / AKP dan penyemak yang berbeza.');r.assigneeId=b.assigneeId;r.pssIds=pss;r.reviewerId=b.reviewerId;
+  const pss=b.pssIds??(b.assigneeId?[b.assigneeId]:[]);if(!Array.isArray(pss)||pss.length>50||new Set(pss.map((id:string)=>typeof id==='string'?assignmentIdentity(d,id):id)).size!==pss.length||pss.some((id:unknown)=>!eligiblePPSAssignee(d,id,b.year))||pss.some((id:string)=>assignedTo(d,id,b.reviewerId))||b.assigneeId&&!pss.includes(b.assigneeId))fail('Pilih PPS daripada senarai guru / AKP dan penyemak yang berbeza.');r.assigneeId=b.assigneeId;r.pssIds=pss;r.reviewerId=b.reviewerId;
  }else if(b.action==='save'){
   if(!p.canEdit)fail('Borang telah dihantar atau disahkan. Minta penyemak membuka semula.',409);
   if(typeof b.mutationId!=='string'||!/^[a-f0-9-]{16,80}$/i.test(b.mutationId))fail('Pengecam simpanan tidak sah.');
