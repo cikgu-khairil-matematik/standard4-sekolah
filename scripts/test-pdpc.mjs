@@ -5,7 +5,7 @@ const D=await import(compile(fs.readFileSync('migration/backend/domain.ts','utf8
 const d={school:{id:'test',code:'TEST',name:'Test'},teachers:[{id:'t',name:'Guru',type:'perdana',position:'GAB'},{id:'o',name:'Pencerap',type:'perdana',position:'PK HEM'},{id:'r',name:'Penyemak',type:'perdana',position:'GURU BESAR'}],members:[{id:'a',role:'admin',active:1},{id:'mt',teacherId:'t',active:1},{id:'mo',teacherId:'o',active:1},{id:'mr',teacherId:'r',active:1}],assessments:[],sessions:[],audit:[],invitations:[],imports:[],pdpc:{version:2,epoch:'epoch-test',revision:0,assignments:{}}};
 const call=(id,b)=>D.dataCommand(d,d.members.find(m=>m.id===id),b),denied=(id,b,status)=>{const before=structuredClone(d);assert.throws(()=>call(id,b),e=>e.status===status);assert.deepEqual(d,before);};
 const assign={action:'pdpc-assignments',year:2026,revision:0,rows:[{teacherId:'t',observerId:'teacher:o',reviewerId:'teacher:r'}]};
-denied('mt',assign,403);denied('a',{...assign,revision:9},409);denied('a',{...assign,rows:[{teacherId:'t',observerId:'teacher:t',reviewerId:'teacher:r'}]},400);denied('a',{...assign,rows:[{teacherId:'t',observerId:'teacher:o',reviewerId:'teacher:o'}]},400);call('a',assign);
+denied('mt',assign,403);denied('a',{...assign,revision:9},409);denied('a',{...assign,rows:[{teacherId:'t',observerId:'teacher:t',reviewerId:'teacher:r'}]},400);call('a',assign);
 const assessment={id:'',teacherId:'t',year:2026,stage:'pertama',epoch:'epoch-test',status:'draft',revision:0,mutationId:'aaaaaaaa-bbbb-cccc-1111',scores:Array(38).fill(4),evaluator:'Pencerap',date:'2026-10-21',subject:'Matematik',classroom:'4 Contoh',notes:'',evidence:['https://example.test/pdpc-proof']};
 denied('mr',{action:'save',assessment},403);denied('mo',{action:'save',assessment:{...assessment,epoch:'old'}},409);denied('mo',{action:'save',assessment:{...assessment,stage:'foreign'}},400);denied('mo',{action:'save',assessment:{...assessment,year:2025}},403);
 denied('mo',{action:'save',assessment:{...assessment,evidence:['javascript:alert(1)']}},400);
@@ -27,11 +27,11 @@ denied('mo',{action:'pdpc-review',id:secondSubmitted.id,revision:2,decision:'ver
 call('mr',{action:'pdpc-review',id:secondSubmitted.id,revision:2,decision:'verify'});assert.equal(d.assessments.find(a=>a.id===secondSubmitted.id).status,'verified');assert.deepEqual(d.assessments.find(a=>a.id===firstBefore.id),firstBefore);
 const self={...assessment,stage:'kendiri',evidence:['https://example.test/self-proof'],mutationId:'cccccccc-bbbb-cccc-1111'};call('mt',{action:'save',assessment:self});call('mt',{action:'save',assessment:{...self,revision:1,status:'submitted',mutationId:'cccccccc-bbbb-cccc-2222'}});assert.equal(new Set(d.assessments.map(a=>a.id)).size,3);
 assert.equal(D.getData(d,d.members.find(m=>m.id==='mo')).teachers.some(t=>t.id==='t'),true);d.pdpc.assignments['2026']=[];assert.equal(D.mayWrite(d,d.members.find(m=>m.id==='mo'),d.teachers[0],'pertama',2026),false);assert.equal(D.mayWrite(d,d.members.find(m=>m.id==='mo'),d.teachers[0],'kedua',2026),false);assert.equal(D.mayWrite(d,d.members.find(m=>m.id==='mt'),d.teachers[0],'kendiri',2026),true);
-console.log('PASS PdPc v2: leader-only observer, distinct reviewer, stable IDs, year isolation, stale/reset epoch rejection, zero-safe scoring, submit/verify/reopen, independent review and immediate revocation.');
+console.log('PASS PdPc v2: leader-only observer and assigned reviewer, stable IDs, year isolation, stale/reset epoch rejection, zero-safe scoring, submit/verify/reopen, independent review and immediate revocation.');
 
 console.log('PASS Standard 4 evidence: reject missing or newly added unsaved links at submission; allow evidence saved in a prior draft; invalid links leave records unchanged.');
 
-console.log('PASS three Standard 4 sessions: same assigned observer for both rounds, independent records/scores/evidence/statuses, self assessment, independent reviewer, epoch, year, saved evidence and revocation.');
+console.log('PASS three Standard 4 sessions: legacy shared observer for both rounds, independent records/scores/evidence/statuses, self assessment, independent reviewer, epoch, year, saved evidence and revocation.');
 
 {
  const {C,V}=await import('./achievement-fixtures.mjs'),doc=structuredClone(d);doc.assessments=[];doc.pdpc.assignments[2026]=assign.rows;

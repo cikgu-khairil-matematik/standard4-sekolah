@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import {domain,scoring,compile,read,fixture,A,R,complete} from './achievement-fixtures.mjs';
+const D=await import(domain),S=await import(scoring),sm=compile(read('migration/backend/strength-model.ts')),mm=compile(read('migration/backend/management-model.ts'));
+const SM=await import(sm),MM=await import(mm),ST=await import(compile(read('migration/backend/strength-api.ts').replace("'./domain.ts'",JSON.stringify(domain)).replace("'./strength-model.ts'",JSON.stringify(sm)))),MG=await import(compile(read('migration/backend/management-api.ts').replace("'./domain.ts'",JSON.stringify(domain)).replace("'./scoring.ts'",JSON.stringify(scoring)).replace("'./management-model.ts'",JSON.stringify(mm))));
+function setup(){const d=fixture();d.teachers=[{id:'pyd',name:'Guru Rekaan',position:'GAB',type:'perdana'},...['GURU BESAR','PK','PK HEM','PK KOKU','PK PETANG','PK PEND. KHAS'].map((position,i)=>({id:'leader'+i,name:'Pentadbir Rekaan '+i,position,type:'perdana'}))];d.members=[{id:'admin',role:'admin',active:1,displayName:'Admin Rekaan'},{id:'pyd',teacherId:'pyd',active:1,role:'member'},...d.teachers.slice(1).map(t=>({id:'m-'+t.id,teacherId:t.id,displayName:t.name,active:1,role:'member'}))];d.pdpc={version:2,epoch:'roles',revision:0,assignments:{}};return d;}
+const d=setup(),admin=d.members[0],one=d.members.find(m=>m.teacherId==='leader0'),two=d.members.find(m=>m.teacherId==='leader1'),pyd=d.members[1];
+assert.equal(D.assignmentPeople(d,2026).filter(p=>p.kind==='teacher'&&p.schoolLeader).length,6);assert.equal(D.session(d,one).isSchoolLeader,true);assert.equal(D.session(d,admin).isSchoolLeader,false);
+const row={teacherId:'pyd',observerId:'teacher:leader0',observer2Id:'teacher:leader1',reviewerId:'teacher:leader0'};
+D.dataCommand(d,admin,{action:'pdpc-assignments',year:2026,revision:0,rows:[row]});
+assert.equal(D.mayWrite(d,one,d.teachers[0],'pertama',2026),true);assert.equal(D.mayWrite(d,one,d.teachers[0],'kedua',2026),false);assert.equal(D.mayWrite(d,two,d.teachers[0],'kedua',2026),true);assert.equal(D.mayWrite(d,two,d.teachers[0],'pertama',2026),false);assert.equal(D.mayWrite(d,admin,d.teachers[0],'pertama',2026),false);assert.equal(D.mayWrite(d,pyd,d.teachers[0],'kendiri',2026),true);assert.ok(D.getData(d,two).teachers.some(t=>t.id==='pyd'));
+const form={teacherId:'pyd',year:2026,stage:'pertama',epoch:'roles',status:'draft',revision:0,scores:Array(38).fill(4),evaluator:'Forged',date:'2026-10-23',subject:'Matematik',classroom:'4 Rekaan',notes:'Rekaan',evidence:['https://example.test/proof'],mutationId:crypto.randomUUID()};
+for(const [stage,actor] of [['pertama',one],['kedua',two]]){let a=D.dataCommand(d,actor,{action:'save',assessment:{...form,stage,mutationId:crypto.randomUUID()}}).assessment;assert.equal(a.evaluator,actor.displayName);a=D.dataCommand(d,actor,{action:'save',assessment:{...form,stage,revision:1,status:'submitted',mutationId:crypto.randomUUID()}}).assessment;D.dataCommand(d,one,{action:'pdpc-review',id:a.id,revision:2,decision:'verify'});assert.equal(d.assessments.find(x=>x.id===a.id).status,'verified');}
+assert.equal(new Set(d.assessments.map(a=>a.id)).size,2);
+// Assignment in one year never exposes another year's scores.
+d.assessments.push({...d.assessments[0],id:'prior-year',year:2025});assert.equal(D.getData(d,two).assessments.some(a=>a.id==='prior-year'),false);assert.equal(D.getData(d,admin).assessments.some(a=>a.id==='prior-year'),true);assert.equal(D.mayWrite(d,one,d.teachers.find(t=>t.id===one.teacherId),'kendiri',2026),true);
+
+const before=structuredClone(d);assert.throws(()=>D.dataCommand(d,admin,{action:'pdpc-assignments',year:2026,revision:1,rows:[{teacherId:'leader0',observerId:'teacher:leader0',observer2Id:'teacher:leader1',reviewerId:'teacher:leader0'}]}),e=>e.status===400);assert.deepEqual(d,before);
+assert.equal(S.observationOfficer({observerId:'legacy'},'kedua'),'legacy');assert.equal(S.observationOfficer({observerId:'legacy',observer2Id:null},'kedua'),null);
+for(const [module,aspect,command,view,data] of [
+ ['strength','A2',ST.strengthCommand,ST.strengthView,{...SM.emptyStrengthData(),values:{previousStandard4:80},notes:'Rujukan rekaan',evidence:['https://example.test/proof']}],
+ ['management','1.1.1',MG.managementCommand,MG.managementView,{...MM.emptyManagementData(),scores:{a:4,b:4,c:4,d:4},notes:'Rujukan rekaan',evidence:['https://example.test/proof']}],
+ ['achievement','5.3.1',A.achievementCommand,A.achievementView,complete('5.3.1')]]){
+ const doc=setup(),ad=doc.members[0],writer=doc.members.find(m=>m.teacherId==='leader1'),reviewer=doc.members.find(m=>m.teacherId==='leader0');
+ const assign={action:'assign',aspect,year:2026,revision:0,assigneeId:'teacher:leader1',pssIds:['teacher:leader1'],reviewerId:'teacher:leader0'};
+ const untouched=structuredClone(doc);assert.throws(()=>command(doc,ad,{...assign,reviewerId:'pyd'}),e=>e.status===400);assert.deepEqual(doc,untouched);assert.throws(()=>command(doc,ad,{...assign,reviewerId:'teacher:leader1'}),e=>e.status===400);
+ command(doc,ad,assign);assert.equal(view(doc,ad,2026).records.find(r=>r.aspect===aspect).canRead,true);assert.equal(view(doc,ad,2026).records.find(r=>r.aspect===aspect).canEdit,false);
+ assert.throws(()=>command(doc,ad,{action:'save',aspect,year:2026,revision:1,data,mutationId:crypto.randomUUID()}),e=>e.status===403);
+ command(doc,writer,{action:'save',aspect,year:2026,revision:1,data,mutationId:crypto.randomUUID()});command(doc,writer,{action:'submit',aspect,year:2026,revision:2});
+ assert.throws(()=>command(doc,ad,{action:'verify',aspect,year:2026,revision:3}),e=>e.status===403);command(doc,reviewer,{action:'verify',aspect,year:2026,revision:3});assert.equal(view(doc,reviewer,2026).records.find(r=>r.aspect===aspect).canReopen,true);
+ doc.teachers.find(t=>t.id==='leader0').position='GAB';assert.equal(view(doc,reviewer,2026).records.find(r=>r.aspect===aspect).canReopen,false);assert.throws(()=>command(doc,reviewer,{action:'reopen',aspect,year:2026,revision:4,feedback:'Semak semula'}),e=>e.status===403);
+ // Legacy member IDs remain authorized only when linked to a school leader.
+ doc.teachers.find(t=>t.id==='leader0').position='GURU BESAR';assert.equal(D.eligibleReviewAssignee(doc,reviewer.id,2026),true);doc.teachers.find(t=>t.id==='leader0').inactiveFromYear=2026;assert.equal(D.eligibleReviewAssignee(doc,reviewer.id,2026),false);
+}
+console.log('PASS Admin/pentadbir: six leadership positions, separate observers, same observer/reviewer permitted for other teachers, own-record rejection, legacy assignments, role-bound marks, Admin read-only oversight, leadership-only review across three modules, alias identity and immediate demotion/inactive revocation. Fictional data only.');
