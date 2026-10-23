@@ -3,10 +3,10 @@ import {domain,compile,read,scoring,A,R,fixture,complete} from './achievement-fi
 const D=await import(domain),sm=compile(read('migration/backend/strength-model.ts')),mm=compile(read('migration/backend/management-model.ts'));
 const S=await import(compile(read('migration/backend/strength-api.ts').replace("'./domain.ts'",JSON.stringify(domain)).replace("'./strength-model.ts'",JSON.stringify(sm))));
 const M=await import(compile(read('migration/backend/management-api.ts').replace("'./domain.ts'",JSON.stringify(domain)).replace("'./management-model.ts'",JSON.stringify(mm)).replace("'./scoring.ts'",JSON.stringify(scoring))));
-const d=fixture();d.teachers=[{id:'leader',name:'Fixture Leader',position:'PK HEM'},{id:'ordinary',name:'Fixture Teacher',position:'GAB'},{id:'review',name:'Fixture Reviewer',position:'GAB'},{id:'pending',name:'Fixture Pending',position:'GAB'}];
+const d=fixture();d.teachers=[{id:'leader',name:'Fixture Leader',position:'PK HEM'},{id:'ordinary',name:'Fixture Teacher',position:'GAB'},{id:'review',name:'Fixture Reviewer',position:'PK KOKU'},{id:'pending',name:'Fixture Pending',position:'GAB'}];
 const who=id=>d.members.find(m=>m.id===id);who('writer').teacherId='leader';who('second').teacherId='ordinary';who('reviewer').teacherId='review';who('other').displayName='Fixture Pending';
 const originalTeachers=structuredClone(d.teachers),originalMarks=structuredClone(d.assessments),people=D.assignmentPeople(d),teachers=people.filter(p=>p.kind==='teacher');
-assert.equal(teachers.length,4);assert.equal(teachers.filter(p=>p.schoolLeader).length,1);assert.equal(teachers.find(p=>p.id==='teacher:pending').linked,false);
+assert.equal(teachers.length,4);assert.equal(teachers.filter(p=>p.schoolLeader).length,2);assert.equal(teachers.find(p=>p.id==='teacher:pending').linked,false);
 assert.equal(D.schoolLeader(' PK PEND. KHAS '),true);assert.equal(D.schoolLeader('GURU BESAR'),true);assert.equal(D.schoolLeader('GURU DATA'),false);assert.equal(D.schoolLeader('GAB'),false);
 assert.equal(D.eligibleScoreAssignee(d,'admin',true),false,'Application admin role is not a school leadership position');
 assert.equal(D.eligibleScoreAssignee(d,'teacher:ordinary',true),false);assert.equal(D.eligibleScoreAssignee(d,'teacher:pending'),true);assert.equal(D.eligibleScoreAssignee(d,'teacher:foreign'),false);
@@ -20,8 +20,8 @@ denied(M.managementCommand,'admin',{action:'assign',aspect:'1.1.1',revision:0,as
 invoke(M.managementCommand,'admin',{action:'assign',aspect:'1.1.1',revision:0,assigneeId:'teacher:pending',pssIds:['teacher:pending','teacher:ordinary'],reviewerId:'reviewer'});
 assert.equal(M.managementView(d,who('second'),2026).records[0].canEdit,true);assert.equal(M.managementView(d,who('other'),2026).records[0].canRead,false,'Display-name impersonation does not authorize access');
 invoke(A.achievementCommand,'admin',{action:'assign',aspect:'5.3.1',revision:0,assigneeId:'teacher:pending',pssIds:['teacher:pending'],reviewerId:'reviewer'});
-invoke(A.achievementCommand,'admin',{action:'save',aspect:'5.3.1',revision:1,data:complete('5.3.1'),mutationId:crypto.randomUUID()});
-denied(A.achievementCommand,'admin',{action:'submit',aspect:'5.3.1',revision:2},400);
+denied(A.achievementCommand,'admin',{action:'save',aspect:'5.3.1',revision:1,data:complete('5.3.1'),mutationId:crypto.randomUUID()},403);Object.assign(d.achievement[2026]['5.3.1'],{data:complete('5.3.1'),revision:2});
+denied(A.achievementCommand,'admin',{action:'submit',aspect:'5.3.1',revision:2},403);
 d.members.push({id:'new-linked',teacherId:'pending',displayName:'Fixture Pending',role:'member',active:1});
 assert.equal(A.achievementView(d,who('new-linked'),2026).records.find(r=>r.aspect==='5.3.1').canEdit,true,'Current teacher ID link enables the planned task');
 assert.equal(A.achievementView(d,who('other'),2026).records.find(r=>r.aspect==='5.3.1').canRead,false);

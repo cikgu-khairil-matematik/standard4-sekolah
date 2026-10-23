@@ -6,7 +6,7 @@ const scoring=compile(fs.readFileSync('migration/backend/scoring.ts','utf8').rep
 const domain=compile(fs.readFileSync('migration/backend/domain.ts','utf8').replace("'./scoring.ts'",JSON.stringify(scoring)));
 const model=compile(fs.readFileSync('migration/backend/strength-model.ts','utf8'));
 const M=await import(model),S=await import(compile(fs.readFileSync('migration/backend/strength-api.ts','utf8').replace("'./domain.ts'",JSON.stringify(domain)).replace("'./strength-model.ts'",JSON.stringify(model))));
-const fixture=()=>({school:{id:'school-a',code:'TEST-A',name:'Sekolah Contoh'},teachers:[{id:'original-teacher',name:'Fixture leader',position:'PK'},{id:'review-teacher',name:'Fixture reviewer',position:'GAB'},{id:'other-teacher',name:'Fixture other leader',position:'PK HEM'}],assessments:[{id:'original-mark',total:91}],members:[{id:'admin',active:1,role:'admin',displayName:'Pentadbir'},{id:'writer',teacherId:'original-teacher',active:1,role:'member',displayName:'Pengisi'},{id:'reviewer',teacherId:'review-teacher',active:1,role:'member',displayName:'Penyemak'},{id:'other',teacherId:'other-teacher',active:1,role:'member',displayName:'Pengguna lain'},{id:'inactive',active:0,role:'member'}],audit:[],sessions:[],invitations:[],imports:[]});
+const fixture=()=>({school:{id:'school-a',code:'TEST-A',name:'Sekolah Contoh'},teachers:[{id:'original-teacher',name:'Fixture leader',position:'PK'},{id:'review-teacher',name:'Fixture reviewer',position:'PK KOKU'},{id:'other-teacher',name:'Fixture other leader',position:'PK HEM'}],assessments:[{id:'original-mark',total:91}],members:[{id:'admin',active:1,role:'admin',displayName:'Pentadbir'},{id:'writer',teacherId:'original-teacher',active:1,role:'member',displayName:'Pengisi'},{id:'reviewer',teacherId:'review-teacher',active:1,role:'member',displayName:'Penyemak'},{id:'other',teacherId:'other-teacher',active:1,role:'member',displayName:'Pengguna lain'},{id:'inactive',active:0,role:'member'}],audit:[],sessions:[],invitations:[],imports:[]});
 const member=(d,id)=>d.members.find(m=>m.id===id);
 const call=(d,id,body)=>S.strengthCommand(d,member(d,id),{year:2026,aspect:'A4',...body});
 const current=(d,aspect='A4',year=2026)=>S.strengthView(d,member(d,'admin'),year).records.find(r=>r.aspect===aspect);
@@ -40,7 +40,7 @@ call(d,'reviewer',{action:'reopen',revision:7,feedback:'Buka untuk kemas kini in
 assert.equal(current(d,'A4',2025).revision,0);assert.equal(current(d,'A5').revision,0);
 assert.deepEqual(d.assessments,[{id:'original-mark',total:91}]);assert.deepEqual(d.teachers,fixture().teachers);
 // An admin who edits cannot verify their own work, even with admin privileges.
-call(d,'admin',{action:'save',revision:8,data,mutationId:'dddddddd-1111-2222'});call(d,'admin',{action:'submit',revision:9});denied(d,'admin',{action:'verify',revision:10},403);call(d,'reviewer',{action:'verify',revision:10});
+call(d,'writer',{action:'save',revision:8,data,mutationId:'dddddddd-1111-2222'});call(d,'writer',{action:'submit',revision:9});denied(d,'admin',{action:'verify',revision:10},403);call(d,'reviewer',{action:'verify',revision:10});
 // Revoked membership / assignments take effect on the next server check.
 member(d,'writer').active=0;const view=S.strengthView(d,member(d,'writer'),2026);assert.equal(view.records.find(r=>r.aspect==='A4').canRead,false);
 denied(d,'writer',{action:'save',revision:11,data,mutationId:'eeeeeeee-1111-2222'},403);

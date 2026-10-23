@@ -55,3 +55,6 @@ export function parseRoster(text:string):RosterInput[]{
  const fields={pp1:headers.findIndex(h=>/^PP1\b/.test(h)),pp2:headers.findIndex(h=>/^PP2\b/.test(h)),position:headers.indexOf('JAWATAN'),grade:headers.indexOf('GRED'),session:headers.findIndex(h=>['SESI','SESI SEKOLAH'].includes(h))};
  return (col>=0?rows.slice(1):rows).map(r=>{const name=(r[col>=0?col:0]??'').trim();const kind=r[typeCol>=0?typeCol:1]??'';const entry:RosterInput={name:name.replace(/\s+/g,' '),type:/khas|ppki/i.test(kind)?'khas':'perdana'};if(col>=0)for(const [field,index] of Object.entries(fields))if(index>=0)(entry as unknown as Record<string,unknown>)[field]=(r[index]??'').trim();return entry;}).filter(t=>t.name.length>=3&&t.name.length<=180&&!/^\d+$/.test(t.name));
 }
+
+// Legacy assignments use one observer for both rounds until explicitly changed.
+export function observationOfficer(row:{observerId?:string|null;observer2Id?:string|null}|undefined,stage:string){return stage==='kedua'&&row?.observer2Id!==undefined?row.observer2Id:row?.observerId??null;}

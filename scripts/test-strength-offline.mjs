@@ -12,6 +12,7 @@ const C=await import(compile(fs.readFileSync('app/app-client.ts','utf8').replace
 const school={id:'fixture-school',name:'Fictional school',code:'TEST-OFFLINE'};
 const admin={id:'admin',displayName:'Admin',role:'admin',active:1},writer={id:'writer',displayName:'Writer',role:'member',active:1},reviewer={id:'reviewer',displayName:'Reviewer',role:'member',active:1},other={id:'other',displayName:'Other',role:'member',active:1};
 const d={school,members:[admin,writer,reviewer,other],teachers:[],assessments:[],audit:[],sessions:[],invitations:[],imports:[]};
+for(const member of [writer,reviewer,other]){member.teacherId='t-'+member.id;d.teachers.push({id:member.teacherId,name:member.displayName,type:'perdana',position:'PK HEM'});}
 const session={memberId:'writer',schoolId:school.id,schoolCode:school.code,schoolName:school.name,username:'writer',displayName:'Writer',isAdmin:false,teacherId:null,legacyOwner:false};
 const data={teachers:[],assessments:[],rosterInfo:null,session};
 api.strengthCommand(d,admin,{action:'assign',aspect:'A4',year:2026,revision:0,assigneeId:'writer',reviewerId:'reviewer'});
@@ -30,7 +31,7 @@ await assert.rejects(engine.strengthCall({action:'load',year:2025}),/Buka Kekuat
 await assert.rejects(engine.strengthCall({action:'submit',year:2026,aspect:'A4',revision:1}),/memerlukan internet/);
 connected=true;await engine.load();assert.equal(engine.strengthPending().length,1,'Refreshing Standard 4 must retain strength drafts');await engine.sync();assert.equal(saves,1);assert.equal(engine.strengthPending().length,0);assert.equal(d.strength['2026'].A4.data.rows[0].working,8);
 connected=false;draft.rows[0].working=9;await engine.strengthCall({action:'save',aspect:'A4',year:2026,revision:2,data:draft});
-const serverDraft=structuredClone(draft);serverDraft.rows[0].working=7;api.strengthCommand(d,admin,{action:'save',aspect:'A4',year:2026,revision:2,data:serverDraft,mutationId:'aaaaaaaa-1111-2222'});
+const serverDraft=structuredClone(draft);serverDraft.rows[0].working=7;api.strengthCommand(d,writer,{action:'save',aspect:'A4',year:2026,revision:2,data:serverDraft,mutationId:'aaaaaaaa-1111-2222'});
 connected=true;await engine.sync();assert.equal(engine.strengthPending().length,1);assert.ok(engine.strengthPending()[0].error.includes('Rekod telah berubah'));assert.equal(d.strength['2026'].A4.data.rows[0].working,7,'Conflict must never overwrite server values');
 await assert.rejects(engine.strengthCall({action:'submit',year:2026,aspect:'A4',revision:3}),/Selaraskan/);
 assert.equal((await V.decryptSnapshot(encrypted,password)).snapshot.strengthPending[0].data.rows[0].working,9,'Conflicting draft remains recoverable');

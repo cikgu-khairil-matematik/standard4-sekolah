@@ -11,7 +11,7 @@ export default function TeacherRoster({session,year,onDirty,onSaved,onBusy}:{yea
  useEffect(()=>{void load().catch(e=>setErrors([e.message]));},[]);
  useEffect(()=>{setSelection([]);setFromYear(year);},[year]);
  useEffect(()=>onDirty(rows.length>0||selection.length>0),[rows,selection]);
- if(!session.isAdmin)return <p>Hanya pentadbir boleh mengurus senarai guru.</p>;
+ if(!session.isAdmin)return <p>Hanya Admin boleh mengurus senarai guru.</p>;
  const roster:WargaRosterRow[]=[...(data?.teachers??[]),...(data?.staff??[])];
  const ref=(t:WargaRosterRow)=>(t.status==='AKP'?'staff:':'teacher:')+t.id,duplicates=rosterDuplicates(roster.filter(t=>rosterActive(t,year)));
  const shown=roster.filter(t=>(activity==='all'||(activity==='active'?rosterActive(t,year):!rosterActive(t,year)))&&(!duplicatesOnly||duplicates.has(ref(t)))).filter(t=>(category==='all'||category==='akp'&&t.status==='AKP'||category===t.type&&t.status!=='AKP')&&normalized(t.name).includes(normalized(query)));

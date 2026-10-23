@@ -12,6 +12,7 @@ const C=await import(compile(fs.readFileSync('app/app-client.ts','utf8').replace
 const school={id:'fixture-school',name:'Fictional school',code:'TEST-OFFLINE'};
 const admin={id:'admin',displayName:'Admin',role:'admin',active:1},writer={id:'writer',displayName:'Writer',role:'member',active:1},reviewer={id:'reviewer',displayName:'Reviewer',role:'member',active:1},other={id:'other',displayName:'Other',role:'member',active:1};
 const d={school,members:[admin,writer,reviewer,other],teachers:[],assessments:[],audit:[],sessions:[],invitations:[],imports:[]};
+for(const member of [writer,reviewer,other]){member.teacherId='t-'+member.id;d.teachers.push({id:member.teacherId,name:member.displayName,type:'perdana',position:'PK HEM'});}
 const session={memberId:'writer',schoolId:school.id,schoolCode:school.code,schoolName:school.name,username:'writer',displayName:'Writer',isAdmin:false,teacherId:null,legacyOwner:false};
 const data={teachers:[],assessments:[],rosterInfo:null,session};
 api.managementCommand(d,admin,{action:'assign',aspect:'1.1.1',year:2026,revision:0,assigneeId:'writer',reviewerId:'reviewer'});
@@ -30,7 +31,7 @@ await assert.rejects(engine.managementCall({action:'load',year:2025}),/Buka Peng
 await assert.rejects(engine.managementCall({action:'submit',year:2026,aspect:'1.1.1',revision:1}),/memerlukan internet/);
 connected=true;await engine.load();assert.equal(engine.managementPending().length,1,'Refreshing Standard 4 must retain management drafts');await engine.sync();assert.equal(saves,1);assert.equal(engine.managementPending().length,0);assert.equal(d.management['2026']['1.1.1'].data.scores.b,2);
 connected=false;draft.scores.b=3;await engine.managementCall({action:'save',aspect:'1.1.1',year:2026,revision:2,data:draft});
-const serverDraft=structuredClone(draft);serverDraft.scores.b=1;api.managementCommand(d,admin,{action:'save',aspect:'1.1.1',year:2026,revision:2,data:serverDraft,mutationId:'aaaaaaaa-1111-2222'});
+const serverDraft=structuredClone(draft);serverDraft.scores.b=1;api.managementCommand(d,writer,{action:'save',aspect:'1.1.1',year:2026,revision:2,data:serverDraft,mutationId:'aaaaaaaa-1111-2222'});
 connected=true;await engine.sync();assert.equal(engine.managementPending().length,1);assert.ok(engine.managementPending()[0].error.includes('Rekod telah berubah'));assert.equal(d.management['2026']['1.1.1'].data.scores.b,1,'Conflict must never overwrite server values');
 await assert.rejects(engine.managementCall({action:'submit',year:2026,aspect:'1.1.1',revision:3}),/Selaraskan/);
 assert.equal((await V.decryptSnapshot(encrypted,password)).snapshot.managementPending[0].data.scores.b,3,'Conflicting draft remains recoverable');
@@ -42,10 +43,11 @@ const hidden=await engine.managementCall({action:'load',year:2026});assert.equal
 engine.lock();assert.equal(engine.key,null);assert.equal(engine.snapshot,null);
 console.log('PASS management offline: encrypted draft/cache, no plaintext, offline recovery, previous-year cache boundaries, official actions online-only, preserve queues across Standard 4 refresh, sync, recoverable conflicts, live assignment revocation and lock. No external accounts or database writes.');
 // New unit rows and admin summary must survive the same encrypted offline workflow.
+admin.teacherId='t-admin';d.teachers.push({id:'t-admin',name:'Admin PPS',type:'perdana',position:'GAB'});api.managementCommand(d,admin,{action:'assign',aspect:'3.1.2.1',year:2026,revision:0,assigneeId:'admin',pssIds:['admin'],reviewerId:'reviewer'});
 let adminOnline=true,adminEncrypted;
 const adminSession={...session,memberId:'admin',username:'admin',displayName:'Admin',isAdmin:true};
 const adminTransport=async(path,b)=>{if(!adminOnline)throw new C.RequestError('Offline fixture',0);if(path==='/api/data')return {...data,session:adminSession};if(path==='/api/session')return {session:adminSession};if(path==='/api/management')return b.action==='load'?api.managementView(d,admin,b.year):api.managementCommand(d,admin,b);throw Error('Unexpected path');};
 const ae=new C.OfflineEngine(adminSession,()=>adminOnline,adminTransport,async e=>adminEncrypted=e);await ae.load();await ae.managementCall({action:'load',year:2026});ae.meta=V.vaultMeta(adminSession);ae.key=await V.deriveVaultKey(password,ae.meta.salt);await ae.persist();adminOnline=false;
-const unitDraft={...M.emptyManagementData(),mode:'units',rows:[{id:'fixture-unit',name:'Private fixture unit',percent:0,notes:'Private fixture reference',url:'https://example.test/unit'}]};await ae.managementCall({action:'save',aspect:'3.1.2.1',year:2026,revision:0,data:unitDraft});
+const unitDraft={...M.emptyManagementData(),mode:'units',rows:[{id:'fixture-unit',name:'Private fixture unit',percent:0,notes:'Private fixture reference',url:'https://example.test/unit'}]};await ae.managementCall({action:'save',aspect:'3.1.2.1',year:2026,revision:1,data:unitDraft});
 const recovered=await V.decryptSnapshot(adminEncrypted,password);assert.equal(recovered.snapshot.managementPending[0].data.rows[0].percent,0);assert.ok(recovered.snapshot.managementCache['2026'].report);assert.ok(!JSON.stringify(adminEncrypted).includes('Private fixture unit'));assert.equal((await ae.managementCall({action:'load',year:2026})).records.find(r=>r.aspect==='3.1.2.1').data.rows[0].percent,0);await assert.rejects(ae.managementCall({action:'report-notes',year:2026,revision:0,notes:{}}),/memerlukan internet/);adminOnline=true;await ae.sync();assert.equal(d.management[2026]['3.1.2.1'].data.rows[0].percent,0);ae.lock();
 console.log('PASS unit rows/evidence and admin summary use encrypted offline cache, zero survives recovery/sync, PGB writes stay online-only.');
