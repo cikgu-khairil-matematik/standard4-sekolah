@@ -6,7 +6,7 @@ import {ASPECTS,validYear} from './strength-model.ts';
 import {MANAGEMENT_UNITS} from './management-model.ts';
 import {strengthCommand,strengthView} from './strength-api.ts';
 import {managementCommand,managementView} from './management-api.ts';
-import {evidenceModules,evidenceModuleLabels,evidenceFolder,googleConnectionReady,type DriveSettings,type AchievementPSS,type EvidenceModule} from './resources-model.ts';
+import {inspectSchoolChoices,evidenceModules,evidenceModuleLabels,evidenceFolder,googleConnectionReady,type DriveSettings,type AchievementPSS,type EvidenceModule} from './resources-model.ts';
 type Resources={pdpcConfirmations?:Record<string,{signature:string;by:string;at:string}>;lists?:Record<string,{revision:number;classes:string[];subjects:string[]}>;settings?:DriveSettings;folders?:Record<string,string>;counters?:Record<string,number>;reservations?:Row[];pss?:Record<string,{revision:number;rows:AchievementPSS[]}>};
 type Store=SchoolDoc&{resources?:Resources};
 const defaults=():DriveSettings=>({revision:0,folderUrl:'',moduleFolders:{},clientId:'',apiKey:'',projectNumber:'',updatedAt:null});
@@ -42,8 +42,8 @@ export function resourcesCommand(d:SchoolDoc,m:Row,b:Row){
  }
  if(b.action==='lists'){
   admin(m);const old=store.resources?.lists?.[String(b.year)]??{revision:0,classes:[],subjects:[]};if(b.revision!==old.revision)fail('Senarai telah berubah. Muat semula dahulu.',409);
-  const clean=(v:unknown)=>{if(!Array.isArray(v)||v.length>200)fail('Maksimum 200 pilihan.');const rows=(v as unknown[]).map(x=>str(x,200));if(rows.some(x=>!x)||new Set(rows).size!==rows.length)fail('Nama kosong atau berulang.');return rows;};
-  const next={revision:old.revision+1,classes:clean(b.classes),subjects:clean(b.subjects)};store.resources??={};store.resources.lists??={};store.resources.lists[String(b.year)]=next;audit(d,m,'school_lists',String(b.year),old,next);return resourcesView(d,m,b.year);
+  const clean=(v:unknown,label:string)=>{if(!Array.isArray(v)||v.length>200)fail('Maksimum 200 pilihan.');if(v.some(x=>typeof x!=='string'||!x.trim()))fail('Nama kosong atau tidak sah.');const result=inspectSchoolChoices(v,label);if(result.errors.length)fail(result.errors[0]);if(result.duplicates.length)fail(label+' berulang: '+result.duplicates.join(', '));return result.names;};
+  const next={revision:old.revision+1,classes:clean(b.classes,'Kelas'),subjects:clean(b.subjects,'Mata pelajaran')};store.resources??={};store.resources.lists??={};store.resources.lists[String(b.year)]=next;audit(d,m,'school_lists',String(b.year),old,next);return resourcesView(d,m,b.year);
  }
  if(b.action==='settings'){
   admin(m);const old=store.resources?.settings??defaults();if(b.revision!==old.revision)fail('Tetapan telah berubah. Muat semula dahulu.',409);

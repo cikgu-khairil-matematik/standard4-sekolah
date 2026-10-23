@@ -5,3 +5,16 @@ export type DriveSettings={revision:number;folderUrl:string;moduleFolders?:Parti
 export const evidenceFolder=(settings:DriveSettings,module:EvidenceModule)=>settings.moduleFolders?.[module]||settings.folderUrl||'';
 export const googleConnectionReady=(settings:DriveSettings)=>!!(settings.clientId&&settings.apiKey&&settings.projectNumber);
 export type AchievementPSS={id:string;standard:string;title:string;memberIds:string[]};
+export const schoolChoiceName=(value:string)=>value.normalize('NFKC').replace(/\s+/gu,' ').trim();
+export const schoolChoiceKey=(value:string)=>schoolChoiceName(value).toLocaleUpperCase('ms-MY');
+export function inspectSchoolChoices(values:unknown[],label:string){
+ const names:string[]=[],duplicates:string[]=[],errors:string[]=[],seen=new Set<string>(),repeated=new Set<string>();
+ for(const value of values){
+  if(typeof value!=='string'){errors.push(label+': nama mestilah teks.');continue;}
+  const name=schoolChoiceName(value);if(!name)continue;
+  if(name.length>200){errors.push(label+': nama melebihi 200 aksara.');continue;}
+  const key=schoolChoiceKey(name);if(seen.has(key)){if(!repeated.has(key))duplicates.push(name);repeated.add(key);}else{seen.add(key);names.push(name);}
+ }
+ if(names.length>200)errors.push(label+': maksimum 200 nama unik.');
+ return {names,duplicates,errors};
+}
