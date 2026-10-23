@@ -41,6 +41,7 @@ jobs:
       - run: node scripts/test-teacher-roster-reports.mjs
       - run: node scripts/test-roster-lifecycle.mjs
       - run: node scripts/test-admin-pentadbir.mjs
+      - run: node scripts/test-school-lists-import.mjs
       - run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
