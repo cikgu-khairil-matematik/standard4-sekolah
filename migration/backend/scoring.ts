@@ -1,9 +1,11 @@
 import source from './rubric.json' with {type:'json'};
 export type TeacherType = 'perdana'|'khas';
 export type Stage = 'kendiri'|'pertama'|'kedua';
-export type Teacher = {id:string;name:string;type:TeacherType;pp1:string;pp2:string;position:string;grade:string;session:string;sourceNumber:number;gender?:string;ic?:string;status?:string;whereabouts?:string};
-export type TeacherRosterRow=Pick<Teacher,'name'|'type'>&Partial<Pick<Teacher,'id'|'position'|'grade'|'session'|'sourceNumber'|'gender'|'ic'|'status'|'whereabouts'>>;
+export type Teacher = {id:string;name:string;type:TeacherType;pp1:string;pp2:string;position:string;grade:string;session:string;sourceNumber:number;gender?:string;ic?:string;status?:string;whereabouts?:string;inactiveFromYear?:number;inactiveReason?:string};
+export type TeacherRosterRow=Pick<Teacher,'name'|'type'>&Partial<Pick<Teacher,'id'|'position'|'grade'|'session'|'sourceNumber'|'gender'|'ic'|'status'|'whereabouts'|'inactiveFromYear'|'inactiveReason'>>;
 export type WargaRosterRow=Omit<TeacherRosterRow,'type'>&{type:TeacherType|'';status?:string};
+export function rosterActive(row:{inactiveFromYear?:number},year?:number){return year===undefined||!Number.isInteger(row.inactiveFromYear)||year<row.inactiveFromYear!;}
+export function rosterDuplicates(rows:WargaRosterRow[]){const matches=new Map<string,string[]>();for(let i=0;i<rows.length;i++)for(let j=i+1;j<rows.length;j++){const a=rows[i],b=rows[j],reasons:string[]=[];if(normalized(a.name)===normalized(b.name))reasons.push('Nama sama');if(a.ic&&b.ic&&a.ic.replace(/[-\s]/g,'')===b.ic.replace(/[-\s]/g,''))reasons.push('No. IC sama');if(reasons.length){for(const [x,y] of [[a,b],[b,a]]){const key=(x.status==='AKP'?'staff:':'teacher:')+x.id;matches.set(key,[...(matches.get(key)??[]),y.name+' ('+reasons.join(', ')+')']);}}}return matches;}
 export function cleanWargaRosterRow(input:unknown):WargaRosterRow{
  if(!input||typeof input!=='object')throw new Error('Baris Guru / AKP tidak sah.');
  const v=input as Record<string,unknown>,status=String(v.status??'').trim().toUpperCase()||'GURU';

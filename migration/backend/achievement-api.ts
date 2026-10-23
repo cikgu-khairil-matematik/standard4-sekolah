@@ -1,4 +1,4 @@
-import {scoreEntry,admin,audit,fail,now,assignmentPeople,assignmentIdentity,assignedMember,assignedTo,eligiblePPSAssignee,type Row,type SchoolDoc} from './domain.ts';
+import {scoreEntry,admin,audit,fail,now,assignmentPeople,eligibleReviewAssignee,assignmentIdentity,assignedMember,assignedTo,eligiblePPSAssignee,type Row,type SchoolDoc} from './domain.ts';
 import {ACHIEVEMENT_ITEMS,emptyAchievementRecord,cleanAchievementData,achievementIssues,validAchievement,validAchievementYear,effectiveAchievementPSS,type AchievementRecord,type AchievementBundle} from './achievement-model.ts';
 import type {AchievementPSS} from './resources-model.ts';
 export type AchievementStore=SchoolDoc&{achievement?:Record<string,Record<string,AchievementRecord>>;resources?:{pss?:Record<string,{revision:number;rows:AchievementPSS[]}>}};
@@ -6,7 +6,7 @@ function record(d:SchoolDoc,aspect:string,year:number){const store=d as Achievem
 function permissions(d:SchoolDoc,m:Row,r:AchievementRecord){const canAdmin=m.role==='admin',writer=assignedTo(d,r.assigneeId,m.id)||(r.pssIds??[]).some(id=>assignedTo(d,id,m.id)),reviewer=assignedTo(d,r.reviewerId,m.id);return {canAdmin,canRead:canAdmin||writer||reviewer,canEdit:(canAdmin||writer)&&['draft','returned'].includes(r.status),canReview:(canAdmin||reviewer)&&r.status==='submitted'&&!writer&&(r as unknown as Row).lastEditorId!==m.id};}
 export function achievementView(d:SchoolDoc,m:Row,year:number):AchievementBundle{
  if(!d.members.some(x=>x.id===m.id&&x.active===1))fail('Akses akaun tidak aktif.',403);if(!validAchievementYear(year))fail('Tahun tidak sah.');
- return {year,records:ACHIEVEMENT_ITEMS.map(a=>{const r=record(d,a.id,year),p=permissions(d,m,r),hasEntry=scoreEntry(r.data);if(!p.canRead){r.data=emptyAchievementRecord(a.id,year).data;r.feedback='';r.verifiedName=null;r.lastEditorId=null;}delete r.lastMutationId;delete r.lastMutationActor;return {...r,...p,hasEntry};}),people:assignmentPeople(d),school:{code:d.school.code,name:d.school.name},sessionId:m.id};
+ return {year,records:ACHIEVEMENT_ITEMS.map(a=>{const r=record(d,a.id,year),p=permissions(d,m,r),hasEntry=scoreEntry(r.data);if(!p.canRead){r.data=emptyAchievementRecord(a.id,year).data;r.feedback='';r.verifiedName=null;r.lastEditorId=null;}delete r.lastMutationId;delete r.lastMutationActor;return {...r,...p,hasEntry};}),people:assignmentPeople(d,year),school:{code:d.school.code,name:d.school.name},sessionId:m.id};
 }
 export function achievementCommand(d:SchoolDoc,m:Row,b:Row):AchievementBundle{
  if(!d.members.some(x=>x.id===m.id&&x.active===1))fail('Akses akaun tidak aktif.',403);
@@ -18,10 +18,10 @@ export function achievementCommand(d:SchoolDoc,m:Row,b:Row):AchievementBundle{
  if(!Number.isInteger(b.revision)||b.revision!==r.revision)fail('Rekod telah berubah. Muat semula dan semak perubahan sebelum menyimpan.',409,{record:{...r,...p}});
  if(b.action==='assign'){
   if(['submitted','verified'].includes(r.status))fail('Buka semula borang sebelum menukar penugasan.',409);
-  const eligible=(id:unknown)=>id===null||typeof id==='string'&&d.members.some(x=>x.id===id&&x.active===1);
-  if(b.assigneeId!==null&&!eligiblePPSAssignee(d,b.assigneeId))fail('Pilih pengisi daripada senarai guru dan AKP sekolah.');if(!eligible(b.reviewerId))fail('Pilih penyemak daripada akaun aktif sekolah.',400);
+  const eligible=(id:unknown)=>id===null||typeof id==='string'&&eligibleReviewAssignee(d,id,b.year);
+  if(b.assigneeId!==null&&!eligiblePPSAssignee(d,b.assigneeId,b.year))fail('Pilih pengisi daripada senarai guru dan AKP sekolah.');if(!eligible(b.reviewerId))fail('Pilih penyemak daripada akaun aktif sekolah.',400);
   if(b.assigneeId&&assignedTo(d,b.assigneeId,b.reviewerId))fail('Pengisi dan penyemak mesti orang yang berbeza.');
-  const pss=b.pssIds??(b.assigneeId?[b.assigneeId]:[]);if(!Array.isArray(pss)||pss.length>50||new Set(pss.map((id:string)=>typeof id==='string'?assignmentIdentity(d,id):id)).size!==pss.length||pss.some((id:unknown)=>!eligiblePPSAssignee(d,id))||pss.some((id:string)=>assignedTo(d,id,b.reviewerId))||b.assigneeId&&!pss.includes(b.assigneeId))fail('Pilih PPS daripada senarai guru / AKP dan penyemak yang berbeza.');r.assigneeId=b.assigneeId;r.pssIds=pss;r.reviewerId=b.reviewerId;
+  const pss=b.pssIds??(b.assigneeId?[b.assigneeId]:[]);if(!Array.isArray(pss)||pss.length>50||new Set(pss.map((id:string)=>typeof id==='string'?assignmentIdentity(d,id):id)).size!==pss.length||pss.some((id:unknown)=>!eligiblePPSAssignee(d,id,b.year))||pss.some((id:string)=>assignedTo(d,id,b.reviewerId))||b.assigneeId&&!pss.includes(b.assigneeId))fail('Pilih PPS daripada senarai guru / AKP dan penyemak yang berbeza.');r.assigneeId=b.assigneeId;r.pssIds=pss;r.reviewerId=b.reviewerId;
   store.resources??={};store.resources.pss??={};const prior=store.resources.pss[String(year)]??{revision:0,rows:[]},existing=prior.rows.find(x=>x.standard===aspect);store.resources.pss[String(year)]={revision:prior.revision+1,rows:[...prior.rows.filter(x=>x.standard!==aspect),{id:existing?.id??crypto.randomUUID(),standard:aspect,title:ACHIEVEMENT_ITEMS.find(x=>x.id===aspect)!.name,memberIds:pss}]};
  }else if(b.action==='save'){
   if(!p.canEdit)fail('Borang telah dihantar atau disahkan. Minta penyemak membuka semula.',409);

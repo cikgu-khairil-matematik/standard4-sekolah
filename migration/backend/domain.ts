@@ -1,4 +1,4 @@
-import {calculate,normalized,stages,cleanWargaRosterRow,type Assessment,type TeacherType} from './scoring.ts';
+import {calculate,normalized,stages,rosterActive,cleanWargaRosterRow,type Assessment,type TeacherType} from './scoring.ts';
 export type Row=Record<string,any>;
 export type SchoolDoc={rosterRevision?:number;school:Row;staff?:Row[];teachers:Row[];assessments:Row[];members:Row[];invitations:Row[];imports:Row[];audit:Row[];sessions:Row[];pdpc?:{version:number;epoch:string;revision:number;assignments:Record<string,Row[]>;resetAt?:string}};
 export class ApiError extends Error {constructor(message:string,public status=400,public details:Row={}){super(message);}}
@@ -26,39 +26,48 @@ export function assignedMember(d:SchoolDoc,id:unknown):Row|undefined{
 }
 export const assignmentIdentity=(d:SchoolDoc,id:string)=>id.startsWith('teacher:')||id.startsWith('staff:')?id:assignedMember(d,id)?.staffId?'staff:'+assignedMember(d,id)!.staffId:assignedMember(d,id)?.teacherId?'teacher:'+assignedMember(d,id)!.teacherId:id;
 export const assignedTo=(d:SchoolDoc,id:unknown,memberId:unknown)=>!!memberId&&assignedMember(d,id)?.id===memberId;
-export function eligibleScoreAssignee(d:SchoolDoc,id:unknown,leadersOnly=false){
+export function eligibleScoreAssignee(d:SchoolDoc,id:unknown,leadersOnly=false,year?:number){
  if(typeof id!=='string')return false;
  const member=assignedMember(d,id),teacher=id.startsWith('teacher:')?d.teachers.find(t=>t.id===id.slice(8)):d.teachers.find(t=>t.id===member?.teacherId);
  // Keep existing account-only schools compatible until their teacher roster is prepared.
- return teacher?(!leadersOnly||schoolLeader(teacher.position)):!d.teachers.length&&!!member;
+ return teacher?(rosterActive(teacher,year)&&(!leadersOnly||schoolLeader(teacher.position))):!d.teachers.length&&!!member;
 }
-export function eligiblePPSAssignee(d:SchoolDoc,id:unknown){
+export function eligiblePPSAssignee(d:SchoolDoc,id:unknown,year?:number){
  if(typeof id!=='string')return false;
- if(id.startsWith('staff:'))return (d.staff??[]).some(s=>s.id===id.slice(6));
- const member=assignedMember(d,id);return !!member?.staffId&&(d.staff??[]).some(s=>s.id===member.staffId)||eligibleScoreAssignee(d,id);
+ if(id.startsWith('staff:'))return (d.staff??[]).some(s=>s.id===id.slice(6)&&rosterActive(s,year));
+ const member=assignedMember(d,id);return !!member?.staffId&&(d.staff??[]).some(s=>s.id===member.staffId&&rosterActive(s,year))||eligibleScoreAssignee(d,id,false,year);
 }
-export function eligibleStrengthAssignee(d:SchoolDoc,id:unknown){
+export function eligibleStrengthAssignee(d:SchoolDoc,id:unknown,year?:number){
  if(typeof id!=='string')return false;
- const member=assignedMember(d,id);return eligibleScoreAssignee(d,id,true)||(id.startsWith('staff:')?(d.staff??[]).some(s=>s.id===id.slice(6)):!!member?.staffId&&(d.staff??[]).some(s=>s.id===member.staffId));
+ const member=assignedMember(d,id);return eligibleScoreAssignee(d,id,true,year)||(id.startsWith('staff:')?(d.staff??[]).some(s=>s.id===id.slice(6)&&rosterActive(s,year)):!!member?.staffId&&(d.staff??[]).some(s=>s.id===member.staffId&&rosterActive(s,year)));
 }
-export function assignmentPeople(d:SchoolDoc){return [
- ...d.teachers.filter(t=>typeof t.name==='string'&&t.name.trim()).map(t=>({id:'teacher:'+t.id,name:t.name,kind:'teacher' as const,position:t.position||'',schoolLeader:schoolLeader(t.position),linked:!!assignedMember(d,'teacher:'+t.id),teacherId:t.id})).sort((a,b)=>a.name.localeCompare(b.name,'ms')),
- ...(d.staff??[]).filter(t=>typeof t.name==='string'&&t.name.trim()).map(t=>({id:'staff:'+t.id,name:t.name,kind:'staff' as const,position:t.position||'',schoolLeader:false,linked:!!assignedMember(d,'staff:'+t.id),staffId:t.id,teacherId:null})).sort((a,b)=>a.name.localeCompare(b.name,'ms')),
- ...d.members.filter(m=>m.active===1).map(m=>({id:m.id,name:m.displayName||m.username,kind:'account' as const,position:'',schoolLeader:false,linked:true,staffId:m.staffId??null,teacherId:m.teacherId??null}))
+export function eligibleReviewAssignee(d:SchoolDoc,id:unknown,year:number){const m=d.members.find(m=>m.id===id&&m.active===1);return !!m&&rosterActive(d.teachers.find(t=>t.id===m.teacherId)??(d.staff??[]).find(t=>t.id===m.staffId)??{},year);}
+export function assignmentPeople(d:SchoolDoc,year?:number){return [
+ ...d.teachers.filter(t=>typeof t.name==='string'&&t.name.trim()).map(t=>({id:'teacher:'+t.id,name:t.name,kind:'teacher' as const,position:t.position||'',schoolLeader:schoolLeader(t.position),inactiveFromYear:t.inactiveFromYear,available:rosterActive(t,year),linked:!!assignedMember(d,'teacher:'+t.id),teacherId:t.id})).sort((a,b)=>a.name.localeCompare(b.name,'ms')),
+ ...(d.staff??[]).filter(t=>typeof t.name==='string'&&t.name.trim()).map(t=>({id:'staff:'+t.id,name:t.name,kind:'staff' as const,position:t.position||'',schoolLeader:false,inactiveFromYear:t.inactiveFromYear,available:rosterActive(t,year),linked:!!assignedMember(d,'staff:'+t.id),staffId:t.id,teacherId:null})).sort((a,b)=>a.name.localeCompare(b.name,'ms')),
+ ...d.members.filter(m=>m.active===1).map(m=>({id:m.id,name:m.displayName||m.username,kind:'account' as const,position:'',schoolLeader:false,available:rosterActive(d.teachers.find(t=>t.id===m.teacherId)??(d.staff??[]).find(t=>t.id===m.staffId)??{},year),linked:true,staffId:m.staffId??null,teacherId:m.teacherId??null}))
  ];}
 export function mayView(d:SchoolDoc,m:Row,t:Row){if(d.pdpc?.version===2)return m.role==='admin'||t.id===m.teacherId||Object.values(d.pdpc.assignments).flat().some(r=>r.teacherId===t.id&&(assignedTo(d,r.observerId,m.id)||assignedTo(d,r.reviewerId,m.id)));const o=own(d,m);return m.role==='admin'||t.id===m.teacherId||!!o&&(normalized(t.pp1)===normalized(o.name)||normalized(t.pp2)===normalized(o.name));}
-export function mayWrite(d:SchoolDoc,m:Row,t:Row,stage:string,year?:number){if(d.pdpc?.version===2){if(!stages.includes(stage as typeof stages[number]))return false;if(stage==='kendiri')return t.id===m.teacherId;return (d.pdpc.assignments[String(year)]??[]).some(r=>r.teacherId===t.id&&eligibleScoreAssignee(d,r.observerId,true)&&assignedTo(d,r.observerId,m.id));}if(m.role==='admin')return true;if(stage==='kendiri')return t.id===m.teacherId;const o=own(d,m);return !!o&&normalized(stage==='pertama'?t.pp1:t.pp2)===normalized(o.name);}
+export function mayWrite(d:SchoolDoc,m:Row,t:Row,stage:string,year?:number){if(!rosterActive(t,year))return false;if(d.pdpc?.version===2){if(!stages.includes(stage as typeof stages[number]))return false;if(stage==='kendiri')return t.id===m.teacherId;return (d.pdpc.assignments[String(year)]??[]).some(r=>r.teacherId===t.id&&eligibleScoreAssignee(d,r.observerId,true,year)&&assignedTo(d,r.observerId,m.id));}if(m.role==='admin')return true;if(stage==='kendiri')return t.id===m.teacherId;const o=own(d,m);return !!o&&normalized(stage==='pertama'?t.pp1:t.pp2)===normalized(o.name);}
 export function audit(d:SchoolDoc,m:Row,action:string,id:string,before:unknown,after:unknown){d.audit.push({id:crypto.randomUUID(),schoolId:d.school.id,actorId:m.id,action,entityId:id,before:before==null?null:JSON.stringify(before),after:after==null?null:JSON.stringify(after),createdAt:now()});}
 export function getData(d:SchoolDoc,m:Row){const teachers=d.teachers.filter(t=>mayView(d,m,t)),ids=new Set(teachers.map(t=>t.id));return {rosterRevision:d.rosterRevision??0,staff:m.role==='admin'?(d.staff??[]).map(t=>({...t,status:'AKP',type:''})):undefined,teachers:teachers.map(t=>{const copy={...t};if(m.role!=='admin'&&t.id!==m.teacherId)delete copy.ic;return copy;}),assessments:d.assessments.filter(a=>ids.has(a.teacherId)),rosterInfo:[...d.imports].sort((a,b)=>b.importedAt.localeCompare(a.importedAt))[0]??null,session:session(d,m),pdpc:d.pdpc?{...d.pdpc,assignments:Object.fromEntries(Object.entries(d.pdpc.assignments).map(([y,rows])=>[y,rows.filter(r=>ids.has(r.teacherId))])),people:assignmentPeople(d)}:undefined};}
 function roster(v:Row){if(!v||!['perdana','khas'].includes(v.type))fail('Kategori guru tidak sah.');const r:Row={name:text(v.name),type:v.type};for(const f of ['pp1','pp2','position','grade','session'])if(v[f]!==undefined){if(typeof v[f]!=='string'||v[f].length>180)fail('Maklumat guru tidak sah.');r[f]=v[f].trim();}if(v.sourceNumber!==undefined){if(!Number.isInteger(v.sourceNumber)||v.sourceNumber<0||v.sourceNumber>10000)fail('Nombor rujukan tidak sah.');r.sourceNumber=v.sourceNumber;}return r;}
 function revoke(d:SchoolDoc,ids:string[]){d.sessions=d.sessions.filter(s=>!ids.includes(s.memberId));}
 export function dataCommand(d:SchoolDoc,m:Row,b:Row){
+ if(b.action==='roster-lifecycle'){
+  admin(m);if(b.rosterRevision!==(d.rosterRevision??0))fail('Senarai berubah. Muat semula dahulu.',409);
+  if(!['deactivate','reactivate'].includes(b.mode)||!Array.isArray(b.references)||!b.references.length||b.references.length>700||new Set(b.references).size!==b.references.length)fail('Pilih Guru / AKP yang sah.');
+  if(b.mode==='deactivate'&&(!Number.isInteger(b.fromYear)||b.fromYear<2020||b.fromYear>2100||typeof b.reason!=='string'||b.reason.trim().length<3||b.reason.length>500))fail('Pilih tahun kuat kuasa dan nyatakan sebab.');
+  const targets=b.references.map((ref:unknown)=>{if(typeof ref!=='string')fail('Rujukan tidak sah.');const staff=ref.startsWith('staff:'),teacher=ref.startsWith('teacher:');if(!staff&&!teacher)fail('Rujukan tidak sah.');const row=(staff?d.staff??[]:d.teachers).find(t=>t.id===ref.slice(staff?6:8));if(!row)fail('Nama tidak ditemui.',404);return row;});
+  const before=structuredClone(targets);for(const row of targets){if(b.mode==='reactivate'){delete row.inactiveFromYear;delete row.inactiveReason;}else{row.inactiveFromYear=b.fromYear;row.inactiveReason=b.reason.trim();}}
+  d.rosterRevision=(d.rosterRevision??0)+1;audit(d,m,'roster_'+b.mode,d.school.id,before,targets);return {updated:targets.length};
+ }
  if(b.action==='pdpc-assignments'){
   admin(m);if(!d.pdpc||d.pdpc.version!==2)fail('Tetapan Standard 4 baharu belum diaktifkan.',409);if(!Number.isInteger(b.year)||b.year<2020||b.year>2100||b.revision!==d.pdpc.revision)fail('Tetapan berubah. Muat semula dahulu.',409);
-  if(!Array.isArray(b.rows)||b.rows.length>500)fail('Senarai tugasan tidak sah.');const seen=new Set();const rows=b.rows.map((r:Row)=>{if(!d.teachers.some(t=>t.id===r.teacherId)||seen.has(r.teacherId))fail('Guru tidak sah atau berulang.');seen.add(r.teacherId);
-   if(r.observerId!==null&&!eligibleScoreAssignee(d,r.observerId,true))fail('Pencerap mestilah pentadbir daripada senarai guru sekolah.');if(r.reviewerId!==null&&!eligibleScoreAssignee(d,r.reviewerId,true))fail('Penyemak mestilah pentadbir daripada senarai guru sekolah.');if(r.observerId&&assignmentIdentity(d,r.observerId)==='teacher:'+r.teacherId)fail('Guru tidak boleh mencerap diri sendiri.');if(r.observerId&&r.reviewerId&&assignmentIdentity(d,r.observerId)===assignmentIdentity(d,r.reviewerId))fail('Pencerap dan penyemak mesti individu berbeza.');if(r.reviewerId&&assignmentIdentity(d,r.reviewerId)==='teacher:'+r.teacherId)fail('Guru tidak boleh menyemak penilaian sendiri.');
+  if(!Array.isArray(b.rows)||b.rows.length>500)fail('Senarai tugasan tidak sah.');const seen=new Set();const rows=b.rows.map((r:Row)=>{if(!d.teachers.some(t=>t.id===r.teacherId&&rosterActive(t,b.year))||seen.has(r.teacherId))fail('Guru tidak sah atau berulang.');seen.add(r.teacherId);
+   if(r.observerId!==null&&!eligibleScoreAssignee(d,r.observerId,true,b.year))fail('Pencerap mestilah pentadbir daripada senarai guru sekolah.');if(r.reviewerId!==null&&!eligibleScoreAssignee(d,r.reviewerId,true,b.year))fail('Penyemak mestilah pentadbir daripada senarai guru sekolah.');if(r.observerId&&assignmentIdentity(d,r.observerId)==='teacher:'+r.teacherId)fail('Guru tidak boleh mencerap diri sendiri.');if(r.observerId&&r.reviewerId&&assignmentIdentity(d,r.observerId)===assignmentIdentity(d,r.reviewerId))fail('Pencerap dan penyemak mesti individu berbeza.');if(r.reviewerId&&assignmentIdentity(d,r.reviewerId)==='teacher:'+r.teacherId)fail('Guru tidak boleh menyemak penilaian sendiri.');
    const old=(d.pdpc!.assignments[String(b.year)]??[]).find(x=>x.teacherId===r.teacherId);if(d.assessments.some(a=>a.teacherId===r.teacherId&&a.year===b.year&&a.status!=='draft')&&(old?.observerId!==r.observerId||old?.reviewerId!==r.reviewerId))fail('Buka semula penilaian sebelum menukar tugasan.',409);return {teacherId:r.teacherId,observerId:r.observerId,reviewerId:r.reviewerId};});
-  const before=structuredClone(d.pdpc);d.pdpc.assignments[String(b.year)]=rows;d.pdpc.revision++;audit(d,m,'pdpc_assignments',String(b.year),before,d.pdpc);return {ok:true};
+  const before=structuredClone(d.pdpc);d.pdpc.assignments[String(b.year)]=[...rows,...(d.pdpc.assignments[String(b.year)]??[]).filter(r=>!seen.has(r.teacherId)&&d.teachers.some(t=>t.id===r.teacherId&&!rosterActive(t,b.year)))];d.pdpc.revision++;audit(d,m,'pdpc_assignments',String(b.year),before,d.pdpc);return {ok:true};
  }
  if(b.action==='pdpc-review'){
   const a=d.assessments.find(a=>a.id===b.id);if(!a||!d.pdpc||d.pdpc.version!==2)fail('Penilaian tidak ditemui.',404);const r=(d.pdpc.assignments[String(a.year)]??[]).find(r=>r.teacherId===a.teacherId);if(!r||!eligibleScoreAssignee(d,r.reviewerId,true)||!assignedTo(d,r.reviewerId,m.id)||assignedTo(d,r.observerId,m.id)||m.teacherId===a.teacherId||a.updatedBy===m.id)fail('Hanya penyemak berbeza yang ditugaskan boleh menyemak.',403);if(b.revision!==a.revision)fail('Penilaian berubah. Muat semula.',409);if(!['verify','return','reopen'].includes(b.decision))fail('Tindakan semakan tidak sah.');if(b.decision==='reopen'?!['verified','submitted'].includes(a.status):a.status!=='submitted')fail('Status tidak membenarkan semakan ini.',409);if(b.decision!=='verify'&&(typeof b.feedback!=='string'||b.feedback.trim().length<5||b.feedback.length>1500))fail('Nyatakan sebab sekurang-kurangnya 5 aksara.');
