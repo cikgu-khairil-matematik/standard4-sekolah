@@ -2,7 +2,7 @@
 
 Aplikasi pengisian kendiri, penilaian pertama (PP1) dan penilaian kedua (PP2).
 
-**Aplikasi:** https://skas-sekolah.github.io/standard4-sekolah/
+**Aplikasi:** https://skas-sekolah.github.io/skpmkualitisekolah/
 
 ## Log masuk
 
