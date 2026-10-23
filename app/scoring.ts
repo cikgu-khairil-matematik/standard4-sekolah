@@ -3,6 +3,17 @@ export type TeacherType = 'perdana'|'khas';
 export type Stage = 'kendiri'|'pertama'|'kedua';
 export type Teacher = {id:string;name:string;type:TeacherType;pp1:string;pp2:string;position:string;grade:string;session:string;sourceNumber:number;gender?:string;ic?:string;status?:string;whereabouts?:string};
 export type TeacherRosterRow=Pick<Teacher,'name'|'type'>&Partial<Pick<Teacher,'id'|'position'|'grade'|'session'|'sourceNumber'|'gender'|'ic'|'status'|'whereabouts'>>;
+export type WargaRosterRow=Omit<TeacherRosterRow,'type'>&{type:TeacherType|'';status?:string};
+export function cleanWargaRosterRow(input:unknown):WargaRosterRow{
+ if(!input||typeof input!=='object')throw new Error('Baris Guru / AKP tidak sah.');
+ const v=input as Record<string,unknown>,status=String(v.status??'').trim().toUpperCase()||'GURU';
+ if(!['GURU','AKP'].includes(status))throw new Error('STATUS mestilah GURU atau AKP.');
+ if(status==='GURU')return {...cleanTeacherRosterRow({...v,status}),status};
+ if(v.type!==undefined&&v.type!=='')throw new Error('Kategori AKP perlu dikosongkan atau Tidak berkenaan.');
+ const session=String(v.session??'').trim().toUpperCase();
+ if(session&&!['PAGI','PETANG','PEJABAT'].includes(session))throw new Error('Sesi AKP mestilah PAGI, PETANG atau PEJABAT.');
+ return {...cleanTeacherRosterRow({...v,type:'perdana',session:session==='PEJABAT'?'':session,status}),type:'',session,status};
+}
 export function cleanTeacherRosterRow(input:unknown):TeacherRosterRow{
  if(!input||typeof input!=='object')throw new Error('Baris guru tidak sah.');
  const v=input as Record<string,unknown>,r:Record<string,unknown>={};

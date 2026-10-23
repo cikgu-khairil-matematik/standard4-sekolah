@@ -27,7 +27,7 @@ export function resourcesCommand(d:SchoolDoc,m:Row,b:Row){
   const clean=b.rows.map((r:Row)=>({name:text(r.name),position:text(r.position||'AKP',2,180)})),key=(s:string)=>s.trim().toLocaleUpperCase().replace(/\s+/g,' ');
   if(new Set(clean.map((r:Row)=>key(r.name))).size!==clean.length)fail('Nama AKP berulang.');
   const next=structuredClone(d.staff??[]);for(const r of clean){const old=next.find(s=>key(s.name)===key(r.name));if(old)Object.assign(old,r);else next.push({id:crypto.randomUUID(),...r});}
-  if(next.length>200)fail('Maksimum 200 AKP sekolah.');d.staff=next;audit(d,m,'staff_imported',d.school.id,null,{count:clean.length});return resourcesView(d,m,b.year);
+  if(next.length>200)fail('Maksimum 200 AKP sekolah.');d.staff=next;d.rosterRevision=(d.rosterRevision??0)+1;audit(d,m,'staff_imported',d.school.id,null,{count:clean.length});return resourcesView(d,m,b.year);
  }
  if(b.action==='pps-assignments'){
   admin(m);if(!Array.isArray(b.groups)||!b.groups.length||b.groups.length>2||new Set(b.groups.map((g:Row)=>g.module)).size!==b.groups.length||b.groups.some((g:Row)=>!['management','achievement'].includes(g.module)))fail('Kumpulan PPS tidak sah.');

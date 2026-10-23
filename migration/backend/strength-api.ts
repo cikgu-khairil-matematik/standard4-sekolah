@@ -1,4 +1,4 @@
-import {scoreEntry,admin,audit,fail,now,assignmentPeople,assignedMember,assignedTo,eligibleScoreAssignee,type Row,type SchoolDoc} from './domain.ts';
+import {scoreEntry,admin,audit,fail,now,assignmentPeople,assignedMember,assignedTo,eligibleStrengthAssignee,type Row,type SchoolDoc} from './domain.ts';
 import {ASPECTS,emptyStrengthRecord,cleanStrengthData,strengthIssues,validAspect,validYear,type StrengthRecord,type StrengthBundle,type AspectId} from './strength-model.ts';
 type Store=SchoolDoc&{strength?:Record<string,Partial<Record<AspectId,StrengthRecord>>>};
 function permissions(d:SchoolDoc,m:Row,r:StrengthRecord){const isAdmin=m.role==='admin',writer=assignedTo(d,r.assigneeId,m.id),reviewer=assignedTo(d,r.reviewerId,m.id);return {canRead:isAdmin||writer||reviewer,canEdit:(isAdmin||writer)&&['draft','returned'].includes(r.status),canReview:(isAdmin||reviewer)&&r.status==='submitted'&&!writer&&(r as unknown as Row).lastEditorId!==m.id};}
@@ -22,7 +22,7 @@ export function strengthCommand(d:SchoolDoc,m:Row,b:Row):StrengthBundle{
  if(b.action==='assign'){
   if(['submitted','verified'].includes(r.status))fail('Buka semula borang sebelum menukar penugasan.',409);
   const eligible=(id:unknown)=>id===null||typeof id==='string'&&d.members.some(x=>x.id===id&&x.active===1);
-  if(b.assigneeId!==null&&!eligibleScoreAssignee(d,b.assigneeId,true))fail('Pilih pengisi daripada Guru Besar / Penolong Kanan dalam senarai guru sekolah.');if(!eligible(b.reviewerId))fail('Pilih penyemak daripada akaun aktif sekolah.',400);
+  if(b.assigneeId!==null&&!eligibleStrengthAssignee(d,b.assigneeId))fail('Pilih pengisi / PPS daripada pentadbir sekolah atau AKP.');if(!eligible(b.reviewerId))fail('Pilih penyemak daripada akaun aktif sekolah.',400);
   if(b.assigneeId&&assignedTo(d,b.assigneeId,b.reviewerId))fail('Pengisi dan penyemak mesti orang yang berbeza.');
   r.assigneeId=b.assigneeId;r.reviewerId=b.reviewerId;
  }else if(b.action==='save'){
