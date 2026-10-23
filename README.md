@@ -12,6 +12,14 @@ Pentadbir menyediakan akaun guru dan kod pengaktifan. Akaun guru mesti dipautkan
 
 ## Online dan offline
 
+### Tetapan awal Standard 4 bagi sekolah baharu
+
+Pendaftaran sekolah menyediakan konfigurasi Standard 4 versi 2 sebelum rekod sekolah disimpan. Sekolah sedia ada yang tiada konfigurasi dan belum mempunyai penilaian mendapat konfigurasi secara automatik selepas log masuk atau permintaan sesi yang sah. Pemulihan menggunakan semakan revision yang sama dengan perubahan lain; permintaan serentak dimuatkan semula sebelum dicuba lagi. Guru, akaun, penugasan modul lain dan konfigurasi Standard 4 yang sudah wujud dikekalkan. Rekod lama yang mempunyai markah tetapi tiada konfigurasi memerlukan migrasi berasingan dan tidak diubah secara automatik.
+
+Untuk mengaktifkan pembetulan, terbitkan semula Edge Function `standard4-api` daripada keseluruhan `migration/backend/` serta frontend GitHub Pages. Tiada SQL pemadaman, reset penilaian atau perubahan RLS diperlukan. Sekolah terjejas hanya perlu memuat semula halaman semasa online selepas penerbitan. Admin boleh mengimport senarai guru kemudian menetapkan pencerap dan penyemak dalam **Tetapan Tugas & PPS → Standard 4**. Sekolah tanpa senarai guru memaparkan arahan penyediaan senarai.
+
+Ujian pendaftaran/pemulihan: `node scripts/test-school-registration.mjs`. Ujian ini menjalankan pengendali Edge sebenar dengan Auth/Data API rekaan, termasuk pendaftaran, pemulihan sesi/log masuk, simpan penugasan, konflik revision, pengasingan sekolah dan pengekalan markah.
+
 Buka aplikasi dengan internet, log masuk, kemudian sediakan mod offline pada peranti sebelum digunakan tanpa internet. Draf disimpan secara terenkripsi menggunakan kata laluan offline dan tamat selepas tujuh hari tanpa pembaharuan. Penghantaran rasmi serta perubahan pentadbiran memerlukan internet. Semak dan selesaikan konflik apabila menyegerakkan draf.
 
 Storan pelayar pautan lama tidak berpindah secara automatik ke github.io. Halaman lama masih membenarkan eksport sandaran offline terenkripsi. Pulihkan sandaran itu pada pautan baharu menggunakan kata laluan offline asal. Jangan padam data pelayar lama sebelum draf dipulihkan.

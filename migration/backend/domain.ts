@@ -4,6 +4,13 @@ export type SchoolDoc={rosterRevision?:number;school:Row;staff?:Row[];teachers:R
 export class ApiError extends Error {constructor(message:string,public status=400,public details:Row={}){super(message);}}
 export function fail(s:string,status=400,details:Row={}):never{throw new ApiError(s,status,details);}
 export const now=()=>new Date().toISOString();
+// Activate only schools that have no existing assessment workflow to migrate.
+// Existing configurations and legacy marks must never be reset by a login.
+export function initializePdpc(d:SchoolDoc){
+ if(d.pdpc||d.assessments.length)return false;
+ d.pdpc={version:2,epoch:crypto.randomUUID(),revision:0,assignments:{}};
+ return true;
+}
 export function text(s:unknown,min=3,max=180){if(typeof s!=='string'||s.trim().length<min||s.trim().length>max)fail('Semak maklumat yang dimasukkan.');return (s as string).trim().replace(/\s+/g,' ');}
 export function code(s:unknown){const c=text(s,3,16).toUpperCase();if(!/^[A-Z0-9][A-Z0-9-]{2,15}$/.test(c))fail('Kod sekolah tidak sah.');return c;}
 export function username(s:unknown){const u=text(s,3,32).toLowerCase();if(!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(u))fail('ID pengguna tidak sah.');return u;}
